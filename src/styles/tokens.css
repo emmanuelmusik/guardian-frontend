@@ -1,0 +1,89 @@
+:root {
+  /* Color — night-watch palette: the record kept through the watches of the night */
+  --gd-void: #12121f;        /* page background, deep indigo-black */
+  --gd-surface: #1c1d2e;     /* cards, panels */
+  --gd-surface-raised: #24263a; /* hover/active surface */
+  --gd-line: #33344a;        /* hairlines, borders */
+  --gd-text: #ede9df;        /* primary text, warm off-white */
+  --gd-text-dim: #9b9ab0;    /* secondary text */
+  --gd-gold: #c9a15c;        /* dawn accent — revelation, primary actions */
+  --gd-gold-dim: #8a7245;
+  --gd-violet: #7c6ba8;      /* dusk accent — mentor/community */
+  --gd-error: #c9705c;
+
+  /* Type */
+  --gd-font-display: 'Fraunces', serif;
+  --gd-font-body: 'Inter', sans-serif;
+  --gd-font-mono: 'IBM Plex Mono', monospace;
+
+  /* Spacing scale */
+  --gd-space-1: 4px;
+  --gd-space-2: 8px;
+  --gd-space-3: 16px;
+  --gd-space-4: 24px;
+  --gd-space-5: 40px;
+  --gd-space-6: 64px;
+
+  --gd-radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--gd-void);
+  color: var(--gd-text);
+  font-family: var(--gd-font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Signature element: the horizon rule — a hairline that shifts from
+   indigo to gold, used as the one recurring divider across the app,
+   standing in for dawn breaking over the night's record. */
+.gd-horizon {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--gd-line) 0%, var(--gd-gold-dim) 60%, var(--gd-gold) 100%);
+  border: none;
+  opacity: 0.6;
+}
+
+.gd-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gd-text-dim);
+  font-family: var(--gd-font-mono);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+
+
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: var(--gd-gold-dim);
+  color: var(--gd-void);
+}
+
+:focus-visible {
+  outline: 2px solid var(--gd-gold);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
