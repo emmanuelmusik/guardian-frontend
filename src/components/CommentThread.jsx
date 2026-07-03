@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../api';
-import { nameFor } from '../utils/formatUser';
+import UserLink from './UserLink.jsx';
 
 export default function CommentThread({ entryId, currentUserId }) {
   const [comments, setComments] = useState([]);
@@ -59,7 +59,7 @@ export default function CommentThread({ entryId, currentUserId }) {
         comments.map((c) => (
           <div key={c.id} style={styles.comment}>
             <div style={styles.commentHeader}>
-              <span style={styles.commentAuthor}>{nameFor(c.profiles)}</span>
+              <span style={styles.commentAuthor}><UserLink profile={{ ...c.profiles, id: c.author_id }} /></span>
               {c.author_id === currentUserId && editingId !== c.id && (
                 <span style={styles.commentActions}>
                   <button onClick={() => startEdit(c)} style={styles.linkButton}>Edit</button>

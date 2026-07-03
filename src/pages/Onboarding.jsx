@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../api';
 
 const ROLES = [
@@ -14,19 +14,57 @@ const ROLES = [
   },
 ];
 
-export default function Onboarding({ onComplete }) {
-  const [selected, setSelected] = useState(null);
+export default function Onboarding({ profile, onComplete }) {
+  const needsRole = !profile?.onboarded;
+  const [step, setStep] = useState(needsRole ? 'role' : 'username');
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [username, setUsername] = useState('');
+  const [usernameStatus, setUsernameStatus] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const checkTimer = useRef(null);
 
-  async function confirm() {
-    if (!selected) return;
+  useEffect(() => {
+    if (!username) {
+      setUsernameStatus(null);
+      return;
+    }
+    if (!/^[a-z0-9_]{3,20}$/.test(username)) {
+      setUsernameStatus('invalid');
+      return;
+    }
+    setUsernameStatus('checking');
+    clearTimeout(checkTimer.current);
+    checkTimer.current = setTimeout(async () => {
+      try {
+        const data = await apiFetch(`/api/users/check-username?username=${encodeURIComponent(username)}`);
+        setUsernameStatus(data.available ? 'available' : 'taken');
+      } catch {
+        setUsernameStatus(null);
+      }
+    }, 400);
+    return () => clearTimeout(checkTimer.current);
+  }, [username]);
+
+  function continueToUsername() {
+    if (!selectedRole) return;
+    setStep('username');
+  }
+
+  async function finish() {
+    if (usernameStatus !== 'available') return;
     setSaving(true);
+    setError(null);
     try {
+      const body = { username, onboarded: true };
+      if (needsRole) body.role = selectedRole;
       const updated = await apiFetch('/api/profile', {
         method: 'PATCH',
-        body: JSON.stringify({ role: selected, onboarded: true }),
+        body: JSON.stringify(body),
       });
       onComplete(updated);
+    } catch (err) {
+      setError(err.message);
     } finally {
       setSaving(false);
     }
@@ -35,31 +73,64 @@ export default function Onboarding({ onComplete }) {
   return (
     <div style={styles.page}>
       <p style={styles.eyebrow}>Guardian</p>
-      <h1 style={styles.title}>How will you walk this path?</h1>
-      <p style={styles.sub}>
-        You can be guided, or you can guide others. Choose what fits you now — this isn't permanent.
-      </p>
 
-      <div style={styles.options}>
-        {ROLES.map((r) => (
-          <button
-            key={r.value}
-            onClick={() => setSelected(r.value)}
-            style={{ ...styles.option, ...(selected === r.value ? styles.optionSelected : {}) }}
-          >
-            <h3 style={styles.optionTitle}>{r.title}</h3>
-            <p style={styles.optionDesc}>{r.description}</p>
+      {step === 'role' && (
+        <>
+          <h1 style={styles.title}>How will you walk this path?</h1>
+          <p style={styles.sub}>
+            You can be guided, or you can guide others. Choose what fits you now — this isn't permanent.
+          </p>
+
+          <div style={styles.options}>
+            {ROLES.map((r) => (
+              <button
+                key={r.value}
+                onClick={() => setSelectedRole(r.value)}
+                style={{ ...styles.option, ...(selectedRole === r.value ? styles.optionSelected : {}) }}
+              >
+                <h3 style={styles.optionTitle}>{r.title}</h3>
+                <p style={styles.optionDesc}>{r.description}</p>
+              </button>
+            ))}
+          </div>
+
+          <button onClick={continueToUsername} disabled={!selectedRole} style={{ ...styles.confirm, opacity: selectedRole ? 1 : 0.5 }}>
+            Continue
           </button>
-        ))}
-      </div>
+        </>
+      )}
 
-      <button
-        onClick={confirm}
-        disabled={!selected || saving}
-        style={{ ...styles.confirm, opacity: !selected || saving ? 0.5 : 1 }}
-      >
-        {saving ? 'Setting your path…' : 'Continue'}
-      </button>
+      {step === 'username' && (
+        <>
+          <h1 style={styles.title}>Choose a username</h1>
+          <p style={styles.sub}>
+            This is how others will find and see you — like on Instagram. You can't change this from here later, but you can update it anytime in Settings.
+          </p>
+
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+            placeholder="username"
+            autoFocus
+            style={styles.usernameInput}
+          />
+          {usernameStatus === 'checking' && <p style={styles.hint}>Checking…</p>}
+          {usernameStatus === 'available' && <p style={styles.hintGood}>Available</p>}
+          {usernameStatus === 'taken' && <p style={styles.error}>Already taken</p>}
+          {usernameStatus === 'invalid' && (
+            <p style={styles.error}>3-20 characters: lowercase letters, numbers, underscores</p>
+          )}
+          {error && <p style={styles.error}>{error}</p>}
+
+          <button
+            onClick={finish}
+            disabled={usernameStatus !== 'available' || saving}
+            style={{ ...styles.confirm, opacity: usernameStatus === 'available' ? 1 : 0.5 }}
+          >
+            {saving ? 'Saving…' : 'Continue'}
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -106,6 +177,21 @@ const styles = {
     color: 'var(--gd-text)',
   },
   optionDesc: { fontSize: 14, lineHeight: 1.5, color: 'var(--gd-text-dim)', margin: 0 },
+  usernameInput: {
+    width: '100%',
+    boxSizing: 'border-box',
+    background: 'var(--gd-surface)',
+    color: 'var(--gd-text)',
+    border: '1px solid var(--gd-line)',
+    borderRadius: 8,
+    padding: '12px 14px',
+    fontFamily: 'var(--gd-font-mono)',
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  hint: { fontSize: 13, color: 'var(--gd-text-dim)', marginBottom: 20 },
+  hintGood: { fontSize: 13, color: 'var(--gd-gold)', marginBottom: 20 },
+  error: { fontSize: 13, color: 'var(--gd-error)', marginBottom: 20 },
   confirm: {
     width: '100%',
     background: 'var(--gd-gold)',
@@ -116,5 +202,6 @@ const styles = {
     fontWeight: 600,
     fontSize: 15,
     cursor: 'pointer',
+    opacity: 1,
   },
 };

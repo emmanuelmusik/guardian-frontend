@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../api';
-import { nameFor } from '../utils/formatUser';
+import UserLink from '../components/UserLink.jsx';
 import CommentThread from '../components/CommentThread.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 
@@ -35,7 +35,7 @@ export default function PeerInbox({ profile }) {
         <div key={entry.id} style={styles.entryCard}>
           <div style={styles.entryMeta}>
             <span style={styles.glyph}>{TYPE_GLYPH[entry.type] || '—'}</span>
-            <span style={styles.entryAuthor}>{nameFor(entry.profiles)}</span>
+            <span style={styles.entryAuthor}><UserLink profile={{ ...entry.profiles, id: entry.user_id }} /></span>
             <span style={styles.entryDate}>
               {new Date(entry.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
             </span>

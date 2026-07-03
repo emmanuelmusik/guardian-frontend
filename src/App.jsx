@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient';
 import { apiFetch } from './api';
 import { NotificationsProvider } from './context/NotificationsContext.jsx';
 import Toast from './components/Toast.jsx';
+import BottomNav from './components/BottomNav.jsx';
 import Login from './pages/Login.jsx';
 import Onboarding from './pages/Onboarding.jsx';
 import Journal from './pages/Journal.jsx';
@@ -19,10 +20,19 @@ import CommunityCall from './pages/CommunityCall.jsx';
 import PeerInbox from './pages/PeerInbox.jsx';
 import FindPeople from './pages/FindPeople.jsx';
 import FAQ from './pages/FAQ.jsx';
+import Profile from './pages/Profile.jsx';
+import Messages from './pages/Messages.jsx';
+import MessageThread from './pages/MessageThread.jsx';
+
+function Protected({ session, profile, children }) {
+  if (!session) return <Navigate to="/login" />;
+  if (!profile?.onboarded || !profile?.username) return <Navigate to="/onboarding" />;
+  return children;
+}
 
 export default function App() {
-  const [session, setSession] = useState(undefined); // undefined = loading, null = signed out
-  const [profile, setProfile] = useState(undefined); // undefined = loading, null = signed out
+  const [session, setSession] = useState(undefined);
+  const [profile, setProfile] = useState(undefined);
   const [welcomeMessage, setWelcomeMessage] = useState(null);
   const justSignedIn = useRef(false);
 
@@ -43,8 +53,6 @@ export default function App() {
     }
   }, [session]);
 
-  // Welcome toast, shown once right after an actual sign-in (not on
-  // every page refresh where a session just gets restored silently).
   useEffect(() => {
     if (profile && justSignedIn.current) {
       setWelcomeMessage(`Welcome back, ${profile.display_name || 'friend'}.`);
@@ -52,8 +60,6 @@ export default function App() {
     }
   }, [profile]);
 
-  // Heartbeat: lets other members see this user as "online" while the
-  // app is open. Simple polling-based presence, not a live socket.
   useEffect(() => {
     if (!session) return;
     apiFetch('/api/profile/heartbeat', { method: 'POST' }).catch(() => {});
@@ -67,6 +73,8 @@ export default function App() {
     return <div className="gd-loading">Keeping watch…</div>;
   }
 
+  const showBottomNav = session && profile?.onboarded;
+
   return (
     <NotificationsProvider enabled={!!session}>
       <Toast message={welcomeMessage} onDismiss={() => setWelcomeMessage(null)} />
@@ -76,172 +84,27 @@ export default function App() {
           <Route
             path="/onboarding"
             element={
-              !session ? (
-                <Navigate to="/login" />
-              ) : profile?.onboarded ? (
-                <Navigate to="/" />
-              ) : (
-                <Onboarding onComplete={setProfile} />
-              )
+              !session ? <Navigate to="/login" /> : (profile?.onboarded && profile?.username) ? <Navigate to="/" /> : <Onboarding profile={profile} onComplete={setProfile} />
             }
           />
-          <Route
-            path="/"
-            element={
-              !session ? (
-                <Navigate to="/login" />
-              ) : !profile?.onboarded ? (
-                <Navigate to="/onboarding" />
-              ) : (
-                <Journal session={session} profile={profile} />
-              )
-            }
-          />
-          <Route
-            path="/admin/materials"
-            element={
-              !session ? (
-                <Navigate to="/login" />
-              ) : !profile?.onboarded ? (
-                <Navigate to="/onboarding" />
-              ) : (
-                <AdminMaterials profile={profile} />
-              )
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              !session ? (
-                <Navigate to="/login" />
-              ) : !profile?.onboarded ? (
-                <Navigate to="/onboarding" />
-              ) : (
-                <Settings profile={profile} onUpdate={setProfile} />
-              )
-            }
-          />
-          <Route
-            path="/communities"
-            element={
-              !session ? (
-                <Navigate to="/login" />
-              ) : !profile?.onboarded ? (
-                <Navigate to="/onboarding" />
-              ) : (
-                <Communities profile={profile} />
-              )
-            }
-          />
-          <Route
-            path="/communities/:id"
-            element={
-              !session ? (
-                <Navigate to="/login" />
-              ) : !profile?.onboarded ? (
-                <Navigate to="/onboarding" />
-              ) : (
-                <CommunityDetail profile={profile} />
-              )
-            }
-          />
-          <Route
-            path="/mentorship"
-            element={
-              !session ? (
-                <Navigate to="/login" />
-              ) : !profile?.onboarded ? (
-                <Navigate to="/onboarding" />
-              ) : (
-                <Mentorship profile={profile} />
-              )
-            }
-          />
-          <Route
-            path="/mentor-inbox"
-            element={
-              !session ? (
-                <Navigate to="/login" />
-              ) : !profile?.onboarded ? (
-                <Navigate to="/onboarding" />
-              ) : (
-                <MentorInbox profile={profile} />
-              )
-            }
-          />
-          <Route
-            path="/bible"
-            element={
-              !session ? (
-                <Navigate to="/login" />
-              ) : !profile?.onboarded ? (
-                <Navigate to="/onboarding" />
-              ) : (
-                <Bible profile={profile} />
-              )
-            }
-          />
-          <Route
-            path="/materials"
-            element={
-              !session ? (
-                <Navigate to="/login" />
-              ) : !profile?.onboarded ? (
-                <Navigate to="/onboarding" />
-              ) : (
-                <Materials profile={profile} />
-              )
-            }
-          />
-          <Route
-            path="/communities/:id/call"
-            element={
-              !session ? (
-                <Navigate to="/login" />
-              ) : !profile?.onboarded ? (
-                <Navigate to="/onboarding" />
-              ) : (
-                <CommunityCall />
-              )
-            }
-          />
-          <Route
-            path="/peer-inbox"
-            element={
-              !session ? (
-                <Navigate to="/login" />
-              ) : !profile?.onboarded ? (
-                <Navigate to="/onboarding" />
-              ) : (
-                <PeerInbox profile={profile} />
-              )
-            }
-          />
-          <Route
-            path="/find-people"
-            element={
-              !session ? (
-                <Navigate to="/login" />
-              ) : !profile?.onboarded ? (
-                <Navigate to="/onboarding" />
-              ) : (
-                <FindPeople profile={profile} />
-              )
-            }
-          />
-          <Route
-            path="/faq"
-            element={
-              !session ? (
-                <Navigate to="/login" />
-              ) : !profile?.onboarded ? (
-                <Navigate to="/onboarding" />
-              ) : (
-                <FAQ profile={profile} />
-              )
-            }
-          />
+          <Route path="/" element={<Protected session={session} profile={profile}><Journal session={session} profile={profile} /></Protected>} />
+          <Route path="/admin/materials" element={<Protected session={session} profile={profile}><AdminMaterials profile={profile} /></Protected>} />
+          <Route path="/settings" element={<Protected session={session} profile={profile}><Settings profile={profile} onUpdate={setProfile} /></Protected>} />
+          <Route path="/communities" element={<Protected session={session} profile={profile}><Communities profile={profile} /></Protected>} />
+          <Route path="/communities/:id" element={<Protected session={session} profile={profile}><CommunityDetail profile={profile} /></Protected>} />
+          <Route path="/communities/:id/call" element={<Protected session={session} profile={profile}><CommunityCall /></Protected>} />
+          <Route path="/mentorship" element={<Protected session={session} profile={profile}><Mentorship profile={profile} /></Protected>} />
+          <Route path="/mentor-inbox" element={<Protected session={session} profile={profile}><MentorInbox profile={profile} /></Protected>} />
+          <Route path="/peer-inbox" element={<Protected session={session} profile={profile}><PeerInbox profile={profile} /></Protected>} />
+          <Route path="/bible" element={<Protected session={session} profile={profile}><Bible profile={profile} /></Protected>} />
+          <Route path="/materials" element={<Protected session={session} profile={profile}><Materials profile={profile} /></Protected>} />
+          <Route path="/find-people" element={<Protected session={session} profile={profile}><FindPeople profile={profile} /></Protected>} />
+          <Route path="/faq" element={<Protected session={session} profile={profile}><FAQ profile={profile} /></Protected>} />
+          <Route path="/profile/:id" element={<Protected session={session} profile={profile}><Profile profile={profile} /></Protected>} />
+          <Route path="/messages" element={<Protected session={session} profile={profile}><Messages profile={profile} /></Protected>} />
+          <Route path="/messages/:userId" element={<Protected session={session} profile={profile}><MessageThread profile={profile} /></Protected>} />
         </Routes>
+        {showBottomNav && <BottomNav profile={profile} />}
       </BrowserRouter>
     </NotificationsProvider>
   );

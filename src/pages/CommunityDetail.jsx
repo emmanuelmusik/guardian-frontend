@@ -5,6 +5,7 @@ import CommentThread from '../components/CommentThread.jsx';
 import Attachment from '../components/Attachment.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { nameFor, isOnline } from '../utils/formatUser';
+import UserLink from '../components/UserLink.jsx';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
 const MAX_ATTACHMENT_MB = 25;
@@ -266,7 +267,7 @@ export default function CommunityDetail({ profile }) {
       <Link to="/communities" style={styles.back}>← Back to My Community</Link>
 
       {!editingCommunity && community.description && <p style={styles.desc}>{community.description}</p>}
-      <p style={styles.mentorLine}>Led by {nameFor(community.profiles)}</p>
+      <p style={styles.mentorLine}>Led by <UserLink profile={{ ...community.profiles, id: community.mentor_id }} /></p>
       <Link to={`/communities/${id}/call`} style={styles.callButton}>📹 Join video/audio call</Link>
 
       {community.myRole === 'mentor' ? (
@@ -308,7 +309,7 @@ export default function CommunityDetail({ profile }) {
           <h3 style={styles.sectionTitle}>Join requests ({joinRequests.length})</h3>
           {joinRequests.map((r) => (
             <div key={r.user_id} style={styles.joinRequestCard}>
-              <span style={styles.joinRequestName}>{nameFor(r.profiles)}</span>
+              <span style={styles.joinRequestName}><UserLink profile={r.profiles} /></span>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => respondToJoinRequest(r.user_id, 'accepted')} style={styles.acceptButton}>
                   Accept
@@ -327,7 +328,7 @@ export default function CommunityDetail({ profile }) {
         {members.map((m) => (
           <span key={m.profiles.id} style={styles.memberChip}>
             <span style={{ ...styles.onlineDot, ...(isOnline(m.profiles.last_seen_at) ? styles.onlineDotActive : {}) }} />
-            {nameFor(m.profiles)}{m.role === 'mentor' ? ' · mentor' : ''}
+            <UserLink profile={m.profiles} />{m.role === 'mentor' ? ' · mentor' : ''}
             {community.myRole === 'mentor' && m.profiles.id !== community.mentor_id && m.role !== 'mentor' && (
               <button onClick={() => removeMember(m.profiles.id)} style={styles.removeMemberButton}>✕</button>
             )}
@@ -340,7 +341,7 @@ export default function CommunityDetail({ profile }) {
         {messages.length === 0 && <p style={styles.dim}>No messages yet. Say something to the group.</p>}
         {messages.map((msg) => (
           <div key={msg.id} style={styles.chatMessage}>
-            <span style={styles.chatAuthor}>{nameFor(msg.profiles)}</span>
+            <span style={styles.chatAuthor}><UserLink profile={{ ...msg.profiles, id: msg.author_id }} /></span>
             <span style={styles.chatTime}>
               {new Date(msg.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
             </span>
@@ -385,7 +386,7 @@ export default function CommunityDetail({ profile }) {
         <div key={entry.id} style={styles.entryCard}>
           <div style={styles.entryMeta}>
             <span style={styles.glyph}>{TYPE_GLYPH[entry.type] || '—'}</span>
-            <span style={styles.entryAuthor}>{nameFor(entry.profiles)}</span>
+            <span style={styles.entryAuthor}><UserLink profile={{ ...entry.profiles, id: entry.user_id }} /></span>
             <span style={styles.entryDate}>
               {new Date(entry.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
             </span>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
+import UserLink from '../components/UserLink.jsx';
 
 export default function Mentorship({ profile }) {
   const [mentors, setMentors] = useState([]);
@@ -107,7 +108,7 @@ export default function Mentorship({ profile }) {
               <h3 style={styles.sectionTitle}>Requests to connect</h3>
               {incomingPeerRequests.map((r) => (
                 <div key={r.id} style={styles.card}>
-                  <h4 style={styles.cardTitle}>{r.requester?.display_name || 'A fellow aspirant'}</h4>
+                  <h4 style={styles.cardTitle}><UserLink profile={r.requester} /></h4>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={() => respondPeer(r.id, 'accepted')} style={styles.actionButton}>Accept</button>
                     <button onClick={() => respondPeer(r.id, 'declined')} style={styles.declineButton}>Decline</button>
@@ -122,7 +123,7 @@ export default function Mentorship({ profile }) {
           {mentors.map((m) => (
             <div key={m.id} style={styles.card}>
               <div>
-                <h4 style={styles.cardTitle}>{m.display_name}</h4>
+                <h4 style={styles.cardTitle}><UserLink profile={m} /></h4>
                 {m.bio && <p style={styles.cardDesc}>{m.bio}</p>}
               </div>
               {m.connectionStatus === 'accepted' && <span style={styles.statusTag}>Connected</span>}
@@ -139,7 +140,7 @@ export default function Mentorship({ profile }) {
           {peers.map((p) => (
             <div key={p.id} style={styles.card}>
               <div>
-                <h4 style={styles.cardTitle}>{p.display_name}</h4>
+                <h4 style={styles.cardTitle}><UserLink profile={p} /></h4>
                 {p.bio && <p style={styles.cardDesc}>{p.bio}</p>}
               </div>
               {p.connection?.status === 'accepted' && <span style={styles.statusTag}>Connected</span>}
@@ -168,7 +169,7 @@ export default function Mentorship({ profile }) {
           {pending.length === 0 && <p style={styles.dim}>No pending requests.</p>}
           {pending.map((r) => (
             <div key={r.id} style={styles.card}>
-              <p style={styles.cardTitle}>Aspirant ID: {r.aspirant_id.slice(0, 8)}…</p>
+              <p style={styles.cardTitle}><UserLink profile={r.aspirant} /></p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => respond(r.id, 'accepted')} style={styles.actionButton}>Accept</button>
                 <button onClick={() => respond(r.id, 'declined')} style={styles.declineButton}>Decline</button>
@@ -180,7 +181,7 @@ export default function Mentorship({ profile }) {
           {accepted.length === 0 && <p style={styles.dim}>No connections yet.</p>}
           {accepted.map((r) => (
             <div key={r.id} style={styles.card}>
-              <p style={styles.cardTitle}>Aspirant ID: {r.aspirant_id.slice(0, 8)}…</p>
+              <p style={styles.cardTitle}><UserLink profile={r.aspirant} /></p>
               <span style={styles.statusTag}>Connected</span>
             </div>
           ))}

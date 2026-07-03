@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { apiFetch } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
 
@@ -74,7 +75,11 @@ export default function FindPeople({ profile }) {
         return (
           <div key={person.id} style={styles.card}>
             <div>
-              <h4 style={styles.cardTitle}>@{person.username}</h4>
+              <h4 style={styles.cardTitle}>
+                <Link to={`/profile/${person.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                  @{person.username}
+                </Link>
+              </h4>
               <p style={styles.cardSub}>{person.display_name} · {person.role}</p>
               {person.bio && <p style={styles.cardDesc}>{person.bio}</p>}
             </div>

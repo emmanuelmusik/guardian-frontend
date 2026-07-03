@@ -3,12 +3,24 @@ import PageHeader from '../components/PageHeader.jsx';
 
 const SECTIONS = [
   {
+    title: 'Getting around',
+    body: "The bottom bar is your main navigation: Journal, Find People, My Community, Messages, and your Profile. Anything less frequent — Settings, Mentorship, Bible, Materials, and this FAQ — lives in the menu (top-right, next to the bell). The header hides when you scroll down and reappears when you scroll up, so it stays out of the way while you read.",
+  },
+  {
     title: 'Journal',
-    body: "Your home screen. Record dreams, visions, intuitions, or notes — type or tap \"Speak instead\" to dictate. Filter by category or search across everything you've written. Each entry has a \"Share…\" button to send it to a mentor, a fellow aspirant, or a community, and a Delete button for entries you no longer want.",
+    body: "Your home screen. Record dreams, visions, intuitions, or notes — type or tap \"Speak instead\" to dictate. Filter by category or search across everything you've written. Each entry has Edit (fix the text), Share… (send it to a mentor, a fellow aspirant, or a community), and Delete.",
+  },
+  {
+    title: 'Profiles',
+    body: "Tap anyone's name anywhere in the app — a community member, a chat message, a comment — to see their profile: photo, username, bio, and a button to connect or message them, depending on your relationship with them.",
+  },
+  {
+    title: 'Messages',
+    body: 'Once you\'re connected with a mentor or fellow aspirant (a request they\'ve accepted), you can message them directly. Find the conversation from their profile, or from the Messages tab in the bottom bar.',
   },
   {
     title: 'My Community',
-    body: "Join communities led by mentors, or create your own if you're a mentor. Requesting to join needs the mentor's approval before you see what's shared inside. Once in, a community page has member list, group chat (with photo/video/audio sharing), shared journal entries with feedback threads, study materials, and a video/audio call button.",
+    body: "Join communities led by mentors, or create your own if you're a mentor. Requesting to join needs the mentor's approval before you see what's shared inside. Once in, a community page has member list (with who's online), group chat (with photo/video/audio sharing), shared journal entries with feedback threads, study materials, and a video/audio call button. Mentors can edit or delete the community, and remove members; anyone can leave on their own.",
   },
   {
     title: 'Mentorship',
@@ -28,11 +40,11 @@ const SECTIONS = [
   },
   {
     title: 'Notifications',
-    body: 'The bell icon (top-right of every page) shows join requests, acceptances, new community posts, and call starts. Tap one to jump straight to what it\'s about.',
+    body: 'The bell icon (top-right of every page) shows join requests, acceptances, new community posts, new messages, and call starts. Tap one to jump straight to what it\'s about.',
   },
   {
     title: 'Settings',
-    body: 'Set your username (how others find and see you), and switch between being an aspirant or a mentor at any time.',
+    body: 'Update your profile photo, bio, and username (chosen and required during signup — how others find and see you), switch between being an aspirant or a mentor, export your data, or delete your account.',
   },
 ];
 
