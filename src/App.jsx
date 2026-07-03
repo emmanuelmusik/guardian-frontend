@@ -5,6 +5,7 @@ import { apiFetch } from './api';
 import Login from './pages/Login.jsx';
 import Onboarding from './pages/Onboarding.jsx';
 import Journal from './pages/Journal.jsx';
+import Settings from './pages/Settings.jsx';
 
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = loading, null = signed out
@@ -55,6 +56,18 @@ export default function App() {
               <Navigate to="/onboarding" />
             ) : (
               <Journal session={session} />
+            )
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            !session ? (
+              <Navigate to="/login" />
+            ) : !profile?.onboarded ? (
+              <Navigate to="/onboarding" />
+            ) : (
+              <Settings profile={profile} onUpdate={setProfile} />
             )
           }
         />

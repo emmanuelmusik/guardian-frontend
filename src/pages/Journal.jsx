@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { apiFetch } from '../api';
 import NewEntryForm from '../components/NewEntryForm.jsx';
@@ -46,7 +47,9 @@ export default function Journal({ session }) {
         </button>
       </header>
 
-      <hr className="gd-horizon" style={{ marginBottom: 32 }} />
+      <Link to="/settings" style={styles.settingsLink}>Settings</Link>
+
+      <hr className="gd-horizon" style={{ marginBottom: 32, marginTop: 12 }} />
 
       <NewEntryForm onCreate={handleCreate} />
 
@@ -96,6 +99,13 @@ const styles = {
     color: 'var(--gd-text-dim)',
     fontSize: 13,
     cursor: 'pointer',
+  },
+  settingsLink: {
+    display: 'inline-block',
+    color: 'var(--gd-text-dim)',
+    fontSize: 13,
+    textDecoration: 'none',
+    marginTop: 8,
   },
   dim: {
     color: 'var(--gd-text-dim)',
