@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, Settings as SettingsIcon, Users, Compass, BookOpen, Library, Shield, LogOut, Search } from 'lucide-react';
+import { Menu, Settings as SettingsIcon, Users, Compass, BookOpen, Library, Shield, LogOut, Search, NotebookPen } from 'lucide-react';
 
 const ITEMS = [
+  { to: '/', label: 'Journal', Icon: NotebookPen },
   { to: '/settings', label: 'Settings', Icon: SettingsIcon },
   { to: '/communities', label: 'My Community', Icon: Users },
   { to: '/mentorship', label: 'Fellowship', Icon: Compass },

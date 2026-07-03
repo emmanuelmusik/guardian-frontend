@@ -17,6 +17,7 @@ export default function NewEntryForm({ onCreate, communities = [], hasMentor = f
   const [listening, setListening] = useState(false);
   const [saving, setSaving] = useState(false);
   const recognitionRef = useRef(null);
+  const submitLockRef = useRef(false);
 
   function toggleVoice() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -31,6 +32,12 @@ export default function NewEntryForm({ onCreate, communities = [], hasMentor = f
       return;
     }
 
+    // Snapshot whatever was already typed before speaking started — the
+    // browser's transcript is cumulative for the whole session, so each
+    // update below replaces (not appends to) what's shown, layered on
+    // top of this snapshot only.
+    const baseContent = content;
+
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = false;
@@ -40,7 +47,7 @@ export default function NewEntryForm({ onCreate, communities = [], hasMentor = f
       const transcript = Array.from(event.results)
         .map((r) => r[0].transcript)
         .join(' ');
-      setContent((prev) => (prev ? `${prev} ${transcript}` : transcript));
+      setContent(baseContent ? `${baseContent} ${transcript}` : transcript);
     };
     recognition.onend = () => setListening(false);
 
@@ -51,7 +58,8 @@ export default function NewEntryForm({ onCreate, communities = [], hasMentor = f
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!content.trim()) return;
+    if (!content.trim() || submitLockRef.current) return;
+    submitLockRef.current = true;
     setSaving(true);
     try {
       await onCreate({
@@ -68,6 +76,7 @@ export default function NewEntryForm({ onCreate, communities = [], hasMentor = f
       setVisibility('private');
     } finally {
       setSaving(false);
+      submitLockRef.current = false;
     }
   }
 
