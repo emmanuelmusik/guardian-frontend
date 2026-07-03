@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { apiFetch } from '../api';
+import PageHeader from '../components/PageHeader.jsx';
 
 export default function Settings({ profile, onUpdate }) {
   const [saving, setSaving] = useState(false);
@@ -25,10 +25,7 @@ export default function Settings({ profile, onUpdate }) {
 
   return (
     <div style={styles.page}>
-      <Link to="/" style={styles.back}>← Back to journal</Link>
-
-      <p style={styles.eyebrow}>Guardian</p>
-      <h1 style={styles.title}>Settings</h1>
+      <PageHeader title="Settings" profile={profile} />
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 

@@ -3,11 +3,12 @@ import { apiFetch } from '../api';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
 
-export default function EntryCard({ entry, communities = [], hasMentor = false, onUpdate }) {
+export default function EntryCard({ entry, communities = [], hasMentor = false, onUpdate, onDelete }) {
   const [editing, setEditing] = useState(false);
   const [visibility, setVisibility] = useState(entry.visibility);
   const [communityId, setCommunityId] = useState(entry.shared_community_id || communities[0]?.id || '');
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const date = new Date(entry.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
@@ -34,6 +35,16 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
     setEditing(false);
   }
 
+  async function handleDelete() {
+    if (!window.confirm('Delete this entry? This can\'t be undone.')) return;
+    setDeleting(true);
+    try {
+      await onDelete?.(entry.id);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const visibilityLabel =
     entry.visibility === 'private' ? 'Private' : entry.visibility === 'mentor' ? 'Shared with mentor' : 'Shared with community';
 
@@ -50,7 +61,12 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
       {!editing && (
         <div style={styles.footer}>
           <span style={styles.visibility}>{visibilityLabel}</span>
-          <button onClick={() => setEditing(true)} style={styles.shareButton}>Share…</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setEditing(true)} style={styles.shareButton}>Share…</button>
+            <button onClick={handleDelete} disabled={deleting} style={styles.deleteButton}>
+              {deleting ? 'Deleting…' : 'Delete'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -131,6 +147,15 @@ const styles = {
     borderRadius: 8,
     padding: '6px 12px',
     color: 'var(--gd-text-dim)',
+    fontSize: 12,
+    cursor: 'pointer',
+  },
+  deleteButton: {
+    background: 'transparent',
+    border: '1px solid var(--gd-line)',
+    borderRadius: 8,
+    padding: '6px 12px',
+    color: 'var(--gd-error)',
     fontSize: 12,
     cursor: 'pointer',
   },

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, Settings as SettingsIcon, Users, Compass, BookOpen, Library, Shield } from 'lucide-react';
+import { Menu, Settings as SettingsIcon, Users, Compass, BookOpen, Library, Shield, LogOut } from 'lucide-react';
 
 const ITEMS = [
   { to: '/settings', label: 'Settings', Icon: SettingsIcon },
@@ -10,7 +10,7 @@ const ITEMS = [
   { to: '/materials', label: 'Materials', Icon: Library },
 ];
 
-export default function NavMenu({ isAdmin }) {
+export default function NavMenu({ isAdmin, onSignOut }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
 
@@ -38,6 +38,17 @@ export default function NavMenu({ isAdmin }) {
               {label}
             </Link>
           ))}
+          <div style={styles.divider} />
+          <button
+            style={styles.signOutItem}
+            onClick={() => {
+              setOpen(false);
+              onSignOut?.();
+            }}
+          >
+            <LogOut size={15} strokeWidth={2} />
+            Sign out
+          </button>
         </div>
       )}
     </div>
@@ -45,7 +56,7 @@ export default function NavMenu({ isAdmin }) {
 }
 
 const styles = {
-  wrap: { position: 'relative', marginTop: 10, display: 'inline-block' },
+  wrap: { position: 'relative', display: 'inline-block' },
   trigger: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -61,7 +72,7 @@ const styles = {
   dropdown: {
     position: 'absolute',
     top: '110%',
-    left: 0,
+    right: 0,
     minWidth: 200,
     zIndex: 10,
     background: 'var(--gd-surface)',
@@ -78,5 +89,24 @@ const styles = {
     color: 'var(--gd-text)',
     fontSize: 14,
     textDecoration: 'none',
+  },
+  divider: {
+    height: 1,
+    background: 'var(--gd-line)',
+    margin: '4px 0',
+  },
+  signOutItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '10px 14px',
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--gd-error)',
+    fontSize: 14,
+    fontFamily: 'var(--gd-font-body)',
+    textAlign: 'left',
+    cursor: 'pointer',
   },
 };

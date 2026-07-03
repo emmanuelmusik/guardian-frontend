@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { apiFetch } from '../api';
+import PageHeader from '../components/PageHeader.jsx';
 
-export default function Materials() {
+export default function Materials({ profile }) {
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,11 +16,7 @@ export default function Materials() {
 
   return (
     <div style={styles.page}>
-      <Link to="/" style={styles.back}>← Back to journal</Link>
-
-      <p style={styles.eyebrow}>Guardian</p>
-      <h1 style={styles.title}>Materials</h1>
-      <p style={styles.sub}>The app's featured library. Mentors recommend from these into their own communities.</p>
+      <PageHeader title="Materials" subtitle="The app's featured library. Mentors recommend from these into their own communities." profile={profile} />
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 

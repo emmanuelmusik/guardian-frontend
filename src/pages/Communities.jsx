@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../api';
+import PageHeader from '../components/PageHeader.jsx';
 
 export default function Communities({ profile }) {
   const [mine, setMine] = useState([]);
@@ -65,10 +66,7 @@ export default function Communities({ profile }) {
 
   return (
     <div style={styles.page}>
-      <Link to="/" style={styles.back}>← Back to journal</Link>
-
-      <p style={styles.eyebrow}>Guardian</p>
-      <h1 style={styles.title}>My Community</h1>
+      <PageHeader title="My Community" profile={profile} />
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 

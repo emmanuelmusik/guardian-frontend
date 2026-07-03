@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { apiFetch } from '../api';
+import PageHeader from '../components/PageHeader.jsx';
 
 const TYPES = [
   { value: 'pdf', label: 'PDF' },
@@ -68,21 +68,21 @@ export default function AdminMaterials({ profile }) {
   if (!profile?.is_admin) {
     return (
       <div style={styles.page}>
+        <PageHeader title="Admin" profile={profile} />
         <p style={styles.dim}>This page is only available to app admins.</p>
-        <Link to="/" style={styles.back}>← Back to journal</Link>
       </div>
     );
   }
 
   return (
     <div style={styles.page}>
-      <Link to="/" style={styles.back}>← Back to journal</Link>
+      <PageHeader
+        title="Featured materials"
+        subtitle="These appear in the library mentors pick from when recommending materials to their community."
+        profile={profile}
+      />
 
-      <p style={styles.eyebrow}>Guardian · Admin</p>
-      <h1 style={styles.title}>Featured materials</h1>
-      <p style={styles.sub}>These appear in the library mentors pick from when recommending materials to their community.</p>
-
-      <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
+      <hr className="gd-horizon" style={{ marginBottom: 32 }} />
 
       {error && <p style={styles.errorText}>{error}</p>}
 

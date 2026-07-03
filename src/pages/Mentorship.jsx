@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../api';
+import PageHeader from '../components/PageHeader.jsx';
 
 export default function Mentorship({ profile }) {
   const [mentors, setMentors] = useState([]);
@@ -92,10 +93,7 @@ export default function Mentorship({ profile }) {
 
   return (
     <div style={styles.page}>
-      <Link to="/" style={styles.back}>← Back to journal</Link>
-
-      <p style={styles.eyebrow}>Guardian</p>
-      <h1 style={styles.title}>Fellowship</h1>
+      <PageHeader title="Fellowship" profile={profile} />
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 

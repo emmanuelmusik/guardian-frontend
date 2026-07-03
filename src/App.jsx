@@ -111,7 +111,7 @@ export default function App() {
             ) : !profile?.onboarded ? (
               <Navigate to="/onboarding" />
             ) : (
-              <CommunityDetail />
+              <CommunityDetail profile={profile} />
             )
           }
         />
@@ -135,7 +135,7 @@ export default function App() {
             ) : !profile?.onboarded ? (
               <Navigate to="/onboarding" />
             ) : (
-              <MentorInbox />
+              <MentorInbox profile={profile} />
             )
           }
         />
@@ -147,7 +147,7 @@ export default function App() {
             ) : !profile?.onboarded ? (
               <Navigate to="/onboarding" />
             ) : (
-              <Bible />
+              <Bible profile={profile} />
             )
           }
         />
@@ -159,7 +159,7 @@ export default function App() {
             ) : !profile?.onboarded ? (
               <Navigate to="/onboarding" />
             ) : (
-              <Materials />
+              <Materials profile={profile} />
             )
           }
         />

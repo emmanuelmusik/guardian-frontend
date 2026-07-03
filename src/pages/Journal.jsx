@@ -1,10 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import React, { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../api';
 import NewEntryForm from '../components/NewEntryForm.jsx';
 import EntryCard from '../components/EntryCard.jsx';
-import NavMenu from '../components/NavMenu.jsx';
+import PageHeader from '../components/PageHeader.jsx';
+
+const CATEGORIES = [
+  { value: 'all', label: 'All' },
+  { value: 'dream', label: 'Dreams' },
+  { value: 'vision', label: 'Visions' },
+  { value: 'intuition', label: 'Intuitions' },
+  { value: 'note', label: 'Notes' },
+];
 
 export default function Journal({ session, profile }) {
   const [entries, setEntries] = useState([]);
@@ -12,6 +18,8 @@ export default function Journal({ session, profile }) {
   const [hasMentor, setHasMentor] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     loadEntries();
@@ -48,39 +56,78 @@ export default function Journal({ session, profile }) {
     setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
   }
 
+  async function handleDeleteEntry(entryId) {
+    await apiFetch(`/api/entries/${entryId}`, { method: 'DELETE' });
+    setEntries((prev) => prev.filter((e) => e.id !== entryId));
+  }
+
+  const counts = useMemo(() => {
+    const c = { all: entries.length, dream: 0, vision: 0, intuition: 0, note: 0 };
+    entries.forEach((e) => {
+      if (c[e.type] !== undefined) c[e.type] += 1;
+    });
+    return c;
+  }, [entries]);
+
+  const visibleEntries = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return entries.filter((e) => {
+      const matchesCategory = activeCategory === 'all' || e.type === activeCategory;
+      const matchesSearch =
+        !term ||
+        (e.title && e.title.toLowerCase().includes(term)) ||
+        (e.content && e.content.toLowerCase().includes(term));
+      return matchesCategory && matchesSearch;
+    });
+  }, [entries, activeCategory, search]);
+
   return (
     <div style={styles.page}>
-      <header style={styles.header}>
-        <div>
-          <p style={styles.eyebrow}>Guardian</p>
-          <h1 style={styles.heading}>Your journal</h1>
-        </div>
-        <button style={styles.signOut} onClick={() => supabase.auth.signOut()}>
-          Sign out
-        </button>
-      </header>
+      <PageHeader title="Your journal" profile={profile} />
 
-      <nav style={styles.nav}>
-        <NavMenu isAdmin={profile?.is_admin} />
-      </nav>
-
-      <hr className="gd-horizon" style={{ marginBottom: 32, marginTop: 12 }} />
+      <hr className="gd-horizon" style={{ marginBottom: 32 }} />
 
       <NewEntryForm onCreate={handleCreate} communities={communities} hasMentor={hasMentor} />
+
+      <input
+        placeholder="Search your entries…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={styles.search}
+      />
+
+      <div style={styles.categoryRow}>
+        {CATEGORIES.map((c) => (
+          <button
+            key={c.value}
+            onClick={() => setActiveCategory(c.value)}
+            style={{
+              ...styles.categoryChip,
+              ...(activeCategory === c.value ? styles.categoryChipActive : {}),
+            }}
+          >
+            {c.label} <span style={styles.categoryCount}>{counts[c.value] ?? 0}</span>
+          </button>
+        ))}
+      </div>
 
       {loading && <p style={styles.dim}>Gathering your entries…</p>}
       {error && <p style={styles.errorText}>{error}</p>}
       {!loading && entries.length === 0 && (
         <p style={styles.dim}>Nothing recorded yet. What did you carry from last night?</p>
       )}
+      {!loading && entries.length > 0 && visibleEntries.length === 0 && (
+        <p style={styles.dim}>Nothing matches that search.</p>
+      )}
 
-      {entries.map((entry) => (
+      {visibleEntries.map((entry) => (
         <EntryCard
           key={entry.id}
           entry={entry}
           communities={communities}
           hasMentor={hasMentor}
           onUpdate={handleUpdateEntry}
+          onDelete={handleDeleteEntry}
         />
       ))}
     </div>
@@ -93,53 +140,44 @@ const styles = {
     margin: '0 auto',
     padding: '48px 24px 80px',
   },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  eyebrow: {
-    fontFamily: 'var(--gd-font-mono)',
-    fontSize: 12,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    color: 'var(--gd-gold)',
-    margin: '0 0 6px',
-  },
-  heading: {
-    fontFamily: 'var(--gd-font-display)',
-    fontWeight: 500,
-    fontSize: 30,
-    margin: 0,
-  },
-  signOut: {
-    background: 'transparent',
+  search: {
+    width: '100%',
+    background: 'var(--gd-surface)',
+    color: 'var(--gd-text)',
     border: '1px solid var(--gd-line)',
     borderRadius: 8,
-    padding: '8px 14px',
-    color: 'var(--gd-text-dim)',
-    fontSize: 13,
-    cursor: 'pointer',
+    padding: '10px 14px',
+    fontSize: 14,
+    fontFamily: 'var(--gd-font-body)',
+    marginBottom: 14,
   },
-  settingsLink: {
-    display: 'inline-block',
-    color: 'var(--gd-text-dim)',
-    fontSize: 13,
-    textDecoration: 'none',
-    marginTop: 8,
-  },
-  nav: {
+  categoryRow: {
     display: 'flex',
-    gap: 20,
-    marginTop: 10,
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 24,
   },
-  navLink: {
-    display: 'inline-flex',
+  categoryChip: {
+    background: 'var(--gd-surface)',
+    border: '1px solid var(--gd-line)',
+    borderRadius: 20,
+    padding: '6px 12px',
+    fontSize: 13,
+    color: 'var(--gd-text-dim)',
+    cursor: 'pointer',
+    display: 'flex',
     alignItems: 'center',
     gap: 6,
-    color: 'var(--gd-text-dim)',
-    fontSize: 13,
-    textDecoration: 'none',
+  },
+  categoryChipActive: {
+    borderColor: 'var(--gd-gold)',
+    color: 'var(--gd-text)',
+    background: 'var(--gd-surface-raised)',
+  },
+  categoryCount: {
+    fontFamily: 'var(--gd-font-mono)',
+    fontSize: 11,
+    color: 'var(--gd-gold)',
   },
   dim: {
     color: 'var(--gd-text-dim)',

@@ -3,12 +3,13 @@ import { useParams, Link } from 'react-router-dom';
 import { apiFetch, apiUpload } from '../api';
 import CommentThread from '../components/CommentThread.jsx';
 import Attachment from '../components/Attachment.jsx';
+import PageHeader from '../components/PageHeader.jsx';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
 const MAX_ATTACHMENT_MB = 25;
 const MAX_ATTACHMENT_BYTES = MAX_ATTACHMENT_MB * 1024 * 1024;
 
-export default function CommunityDetail() {
+export default function CommunityDetail({ profile }) {
   const { id } = useParams();
   const [community, setCommunity] = useState(null);
   const [members, setMembers] = useState([]);
@@ -127,10 +128,9 @@ export default function CommunityDetail() {
 
   return (
     <div style={styles.page}>
+      <PageHeader title={community.name} profile={profile} />
       <Link to="/communities" style={styles.back}>← Back to My Community</Link>
 
-      <p style={styles.eyebrow}>Guardian</p>
-      <h1 style={styles.title}>{community.name}</h1>
       {community.description && <p style={styles.desc}>{community.description}</p>}
       <p style={styles.mentorLine}>Led by {community.profiles?.display_name || 'a mentor'}</p>
       <Link to={`/communities/${id}/call`} style={styles.callButton}>📹 Join video/audio call</Link>

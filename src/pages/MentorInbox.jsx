@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../api';
 import CommentThread from '../components/CommentThread.jsx';
+import PageHeader from '../components/PageHeader.jsx';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
 
-export default function MentorInbox() {
+export default function MentorInbox({ profile }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,10 +21,8 @@ export default function MentorInbox() {
 
   return (
     <div style={styles.page}>
+      <PageHeader title="Shared with you" profile={profile} />
       <Link to="/mentorship" style={styles.back}>← Back to Fellowship</Link>
-
-      <p style={styles.eyebrow}>Guardian</p>
-      <h1 style={styles.title}>Shared with you</h1>
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 

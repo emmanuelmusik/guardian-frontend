@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../api';
+import PageHeader from '../components/PageHeader.jsx';
 
 const VERSIONS = [
   { value: 'kjv', label: 'King James Version' },
@@ -10,20 +10,61 @@ const VERSIONS = [
   { value: 'ylt', label: "Young's Literal Translation" },
 ];
 
-export default function Bible() {
-  const [ref, setRef] = useState('John 3:16');
+// Standard chapter counts per book — fixed textual structure, same
+// across translations of the 66-book Protestant canon.
+const OLD_TESTAMENT = [
+  ['Genesis', 50], ['Exodus', 40], ['Leviticus', 27], ['Numbers', 36], ['Deuteronomy', 34],
+  ['Joshua', 24], ['Judges', 21], ['Ruth', 4], ['1 Samuel', 31], ['2 Samuel', 24],
+  ['1 Kings', 22], ['2 Kings', 25], ['1 Chronicles', 29], ['2 Chronicles', 36], ['Ezra', 10],
+  ['Nehemiah', 13], ['Esther', 10], ['Job', 42], ['Psalms', 150], ['Proverbs', 31],
+  ['Ecclesiastes', 12], ['Song of Solomon', 8], ['Isaiah', 66], ['Jeremiah', 52], ['Lamentations', 5],
+  ['Ezekiel', 48], ['Daniel', 12], ['Hosea', 14], ['Joel', 3], ['Amos', 9],
+  ['Obadiah', 1], ['Jonah', 4], ['Micah', 7], ['Nahum', 3], ['Habakkuk', 3],
+  ['Zephaniah', 3], ['Haggai', 2], ['Zechariah', 14], ['Malachi', 4],
+];
+
+const NEW_TESTAMENT = [
+  ['Matthew', 28], ['Mark', 16], ['Luke', 24], ['John', 21], ['Acts', 28],
+  ['Romans', 16], ['1 Corinthians', 16], ['2 Corinthians', 13], ['Galatians', 6], ['Ephesians', 6],
+  ['Philippians', 4], ['Colossians', 4], ['1 Thessalonians', 5], ['2 Thessalonians', 3], ['1 Timothy', 6],
+  ['2 Timothy', 4], ['Titus', 3], ['Philemon', 1], ['Hebrews', 13], ['James', 5],
+  ['1 Peter', 5], ['2 Peter', 3], ['1 John', 5], ['2 John', 1], ['3 John', 1],
+  ['Jude', 1], ['Revelation', 22],
+];
+
+const ALL_BOOKS = [...OLD_TESTAMENT, ...NEW_TESTAMENT];
+const CHAPTER_COUNT = Object.fromEntries(ALL_BOOKS);
+
+export default function Bible({ profile }) {
+  const [book, setBook] = useState('John');
+  const [chapter, setChapter] = useState(3);
   const [version, setVersion] = useState('kjv');
   const [passage, setPassage] = useState(null);
+  const [selectedVerse, setSelectedVerse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  async function lookup(e) {
-    e?.preventDefault();
-    if (!ref.trim()) return;
+  const chapterOptions = useMemo(
+    () => Array.from({ length: CHAPTER_COUNT[book] || 1 }, (_, i) => i + 1),
+    [book]
+  );
+
+  useEffect(() => {
+    // Reset chapter if it no longer fits the newly selected book
+    if (chapter > (CHAPTER_COUNT[book] || 1)) setChapter(1);
+  }, [book]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    load();
+  }, [book, chapter, version]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function load() {
     setLoading(true);
     setError(null);
+    setSelectedVerse(null);
     try {
-      const data = await apiFetch(`/api/bible/passage?ref=${encodeURIComponent(ref.trim())}&version=${version}`);
+      const ref = `${book} ${chapter}`;
+      const data = await apiFetch(`/api/bible/passage?ref=${encodeURIComponent(ref)}&version=${version}`);
       setPassage(data);
     } catch (err) {
       setError(err.message);
@@ -35,38 +76,45 @@ export default function Bible() {
 
   return (
     <div style={styles.page}>
-      <Link to="/" style={styles.back}>← Back to journal</Link>
+      <PageHeader title="Bible" profile={profile} />
 
-      <p style={styles.eyebrow}>Guardian</p>
-      <h1 style={styles.title}>Bible</h1>
+      <hr className="gd-horizon" style={{ marginBottom: 24 }} />
 
-      <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
-
-      <form onSubmit={lookup} style={styles.form}>
-        <input
-          placeholder="e.g. Psalm 23, John 3:16, Romans 8:28-30"
-          value={ref}
-          onChange={(e) => setRef(e.target.value)}
-          style={{ ...styles.input, flex: 1 }}
-        />
-        <select value={version} onChange={(e) => setVersion(e.target.value)} style={styles.input}>
-          {VERSIONS.map((v) => (
-            <option key={v.value} value={v.value}>{v.label}</option>
-          ))}
+      <div style={styles.pickerRow}>
+        <select value={book} onChange={(e) => setBook(e.target.value)} style={styles.select}>
+          <optgroup label="Old Testament">
+            {OLD_TESTAMENT.map(([name]) => <option key={name} value={name}>{name}</option>)}
+          </optgroup>
+          <optgroup label="New Testament">
+            {NEW_TESTAMENT.map(([name]) => <option key={name} value={name}>{name}</option>)}
+          </optgroup>
         </select>
-        <button type="submit" disabled={loading || !ref.trim()} style={styles.button}>
-          {loading ? '…' : 'Read'}
-        </button>
-      </form>
 
-      {error && <p style={styles.errorText}>Couldn't find that passage — try a format like "John 3:16" or "Psalm 23".</p>}
+        <select value={chapter} onChange={(e) => setChapter(Number(e.target.value))} style={styles.select}>
+          {chapterOptions.map((n) => <option key={n} value={n}>Chapter {n}</option>)}
+        </select>
 
-      {passage && (
+        <select value={version} onChange={(e) => setVersion(e.target.value)} style={styles.select}>
+          {VERSIONS.map((v) => <option key={v.value} value={v.value}>{v.label}</option>)}
+        </select>
+      </div>
+
+      {error && <p style={styles.errorText}>Couldn't load that passage — try a different chapter or version.</p>}
+      {loading && <p style={styles.dim}>Loading…</p>}
+
+      {passage && !loading && (
         <div style={styles.card}>
           <p style={styles.reference}>{passage.reference} · {passage.translation_name}</p>
           {passage.verses ? (
-            passage.verses.map((v, i) => (
-              <p key={i} style={styles.verse}>
+            passage.verses.map((v) => (
+              <p
+                key={v.verse}
+                onClick={() => setSelectedVerse(v.verse === selectedVerse ? null : v.verse)}
+                style={{
+                  ...styles.verse,
+                  ...(selectedVerse === v.verse ? styles.verseSelected : {}),
+                }}
+              >
                 <span style={styles.verseNum}>{v.verse}</span> {v.text.trim()}
               </p>
             ))
@@ -81,20 +129,10 @@ export default function Bible() {
 
 const styles = {
   page: { maxWidth: 640, margin: '0 auto', padding: '48px 24px 80px' },
-  back: { display: 'inline-block', color: 'var(--gd-text-dim)', fontSize: 13, textDecoration: 'none', marginBottom: 24 },
-  eyebrow: {
-    fontFamily: 'var(--gd-font-mono)', fontSize: 12, letterSpacing: '0.12em',
-    textTransform: 'uppercase', color: 'var(--gd-gold)', margin: '0 0 6px',
-  },
-  title: { fontFamily: 'var(--gd-font-display)', fontWeight: 500, fontSize: 30, margin: 0 },
-  form: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 },
-  input: {
+  pickerRow: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 },
+  select: {
     background: 'var(--gd-surface)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)',
     borderRadius: 8, padding: '10px 12px', fontFamily: 'var(--gd-font-body)', fontSize: 14,
-  },
-  button: {
-    background: 'var(--gd-gold)', border: 'none', borderRadius: 8, padding: '10px 20px',
-    color: 'var(--gd-on-accent)', fontWeight: 600, fontSize: 14, cursor: 'pointer',
   },
   card: {
     background: 'var(--gd-surface)', border: '1px solid var(--gd-line)',
@@ -106,10 +144,15 @@ const styles = {
   },
   verse: {
     fontFamily: 'var(--gd-font-display)', fontSize: 18, lineHeight: 1.8,
-    color: 'var(--gd-text)', margin: '0 0 8px',
+    color: 'var(--gd-text)', margin: '0 0 8px', cursor: 'pointer', borderRadius: 6, padding: '2px 6px',
+  },
+  verseSelected: {
+    background: 'var(--gd-surface-raised)',
+    boxShadow: '0 0 0 1px var(--gd-gold-dim)',
   },
   verseNum: {
     fontFamily: 'var(--gd-font-mono)', fontSize: 12, color: 'var(--gd-gold)', marginRight: 4,
   },
+  dim: { color: 'var(--gd-text-dim)', fontSize: 14 },
   errorText: { color: 'var(--gd-error)', fontSize: 14, marginBottom: 16 },
 };
