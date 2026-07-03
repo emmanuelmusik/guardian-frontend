@@ -7,6 +7,9 @@ import Onboarding from './pages/Onboarding.jsx';
 import Journal from './pages/Journal.jsx';
 import Settings from './pages/Settings.jsx';
 import Communities from './pages/Communities.jsx';
+import CommunityDetail from './pages/CommunityDetail.jsx';
+import Mentorship from './pages/Mentorship.jsx';
+import MentorInbox from './pages/MentorInbox.jsx';
 
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = loading, null = signed out
@@ -81,6 +84,42 @@ export default function App() {
               <Navigate to="/onboarding" />
             ) : (
               <Communities profile={profile} />
+            )
+          }
+        />
+        <Route
+          path="/communities/:id"
+          element={
+            !session ? (
+              <Navigate to="/login" />
+            ) : !profile?.onboarded ? (
+              <Navigate to="/onboarding" />
+            ) : (
+              <CommunityDetail />
+            )
+          }
+        />
+        <Route
+          path="/mentorship"
+          element={
+            !session ? (
+              <Navigate to="/login" />
+            ) : !profile?.onboarded ? (
+              <Navigate to="/onboarding" />
+            ) : (
+              <Mentorship profile={profile} />
+            )
+          }
+        />
+        <Route
+          path="/mentor-inbox"
+          element={
+            !session ? (
+              <Navigate to="/login" />
+            ) : !profile?.onboarded ? (
+              <Navigate to="/onboarding" />
+            ) : (
+              <MentorInbox />
             )
           }
         />

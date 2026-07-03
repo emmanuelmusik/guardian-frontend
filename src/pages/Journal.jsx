@@ -7,11 +7,19 @@ import EntryCard from '../components/EntryCard.jsx';
 
 export default function Journal({ session }) {
   const [entries, setEntries] = useState([]);
+  const [communities, setCommunities] = useState([]);
+  const [hasMentor, setHasMentor] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     loadEntries();
+    apiFetch('/api/communities')
+      .then((data) => setCommunities(data.map((m) => m.communities)))
+      .catch(() => setCommunities([]));
+    apiFetch('/api/connections')
+      .then((data) => setHasMentor(data.some((c) => c.status === 'accepted')))
+      .catch(() => setHasMentor(false));
   }, []);
 
   async function loadEntries() {
@@ -49,10 +57,11 @@ export default function Journal({ session }) {
 
       <Link to="/settings" style={styles.settingsLink}>Settings</Link>
       <Link to="/communities" style={{ ...styles.settingsLink, marginLeft: 16 }}>Communities</Link>
+      <Link to="/mentorship" style={{ ...styles.settingsLink, marginLeft: 16 }}>Mentorship</Link>
 
       <hr className="gd-horizon" style={{ marginBottom: 32, marginTop: 12 }} />
 
-      <NewEntryForm onCreate={handleCreate} />
+      <NewEntryForm onCreate={handleCreate} communities={communities} hasMentor={hasMentor} />
 
       {loading && <p style={styles.dim}>Gathering your entries…</p>}
       {error && <p style={styles.errorText}>{error}</p>}

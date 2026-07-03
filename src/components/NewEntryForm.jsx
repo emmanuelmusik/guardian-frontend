@@ -7,10 +7,12 @@ const TYPES = [
   { value: 'note', label: 'Note' },
 ];
 
-export default function NewEntryForm({ onCreate }) {
+export default function NewEntryForm({ onCreate, communities = [], hasMentor = false }) {
   const [type, setType] = useState('note');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [visibility, setVisibility] = useState('private');
+  const [communityId, setCommunityId] = useState(communities[0]?.id || '');
   const [listening, setListening] = useState(false);
   const [saving, setSaving] = useState(false);
   const recognitionRef = useRef(null);
@@ -51,10 +53,17 @@ export default function NewEntryForm({ onCreate }) {
     if (!content.trim()) return;
     setSaving(true);
     try {
-      await onCreate({ type, title: title.trim() || null, content, visibility: 'private' });
+      await onCreate({
+        type,
+        title: title.trim() || null,
+        content,
+        visibility,
+        shared_community_id: visibility === 'community' ? communityId : null,
+      });
       setTitle('');
       setContent('');
       setType('note');
+      setVisibility('private');
     } finally {
       setSaving(false);
     }
@@ -83,6 +92,23 @@ export default function NewEntryForm({ onCreate }) {
         rows={4}
         style={styles.textarea}
       />
+
+      <div style={styles.row}>
+        <select value={visibility} onChange={(e) => setVisibility(e.target.value)} style={styles.select}>
+          <option value="private">Private</option>
+          <option value="mentor" disabled={!hasMentor}>Share with mentor</option>
+          <option value="community" disabled={communities.length === 0}>
+            Share with a community
+          </option>
+        </select>
+        {visibility === 'community' && (
+          <select value={communityId} onChange={(e) => setCommunityId(e.target.value)} style={styles.select}>
+            {communities.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        )}
+      </div>
 
       <div style={styles.row}>
         <button

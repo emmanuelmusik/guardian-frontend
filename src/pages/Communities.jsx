@@ -102,13 +102,13 @@ export default function Communities({ profile }) {
         <p style={styles.dim}>You haven't joined a community yet.</p>
       )}
       {mine.map(({ role, communities: c }) => (
-        <div key={c.id} style={styles.listCard}>
+        <Link key={c.id} to={`/communities/${c.id}`} style={{ ...styles.listCard, textDecoration: 'none' }}>
           <div>
             <h4 style={styles.listCardTitle}>{c.name}</h4>
             {c.description && <p style={styles.listCardDesc}>{c.description}</p>}
           </div>
           <span style={styles.roleTag}>{role}</span>
-        </div>
+        </Link>
       ))}
 
       <h3 style={styles.sectionTitle}>Discover</h3>
