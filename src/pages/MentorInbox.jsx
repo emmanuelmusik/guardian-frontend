@@ -20,7 +20,7 @@ export default function MentorInbox() {
 
   return (
     <div style={styles.page}>
-      <Link to="/mentorship" style={styles.back}>← Back to mentorship</Link>
+      <Link to="/mentorship" style={styles.back}>← Back to Fellowship</Link>
 
       <p style={styles.eyebrow}>Guardian</p>
       <h1 style={styles.title}>Shared with you</h1>

@@ -12,6 +12,7 @@ import Mentorship from './pages/Mentorship.jsx';
 import MentorInbox from './pages/MentorInbox.jsx';
 import AdminMaterials from './pages/AdminMaterials.jsx';
 import Bible from './pages/Bible.jsx';
+import Materials from './pages/Materials.jsx';
 import CommunityCall from './pages/CommunityCall.jsx';
 
 export default function App() {
@@ -147,6 +148,18 @@ export default function App() {
               <Navigate to="/onboarding" />
             ) : (
               <Bible />
+            )
+          }
+        />
+        <Route
+          path="/materials"
+          element={
+            !session ? (
+              <Navigate to="/login" />
+            ) : !profile?.onboarded ? (
+              <Navigate to="/onboarding" />
+            ) : (
+              <Materials />
             )
           }
         />

@@ -95,7 +95,7 @@ export default function Mentorship({ profile }) {
       <Link to="/" style={styles.back}>← Back to journal</Link>
 
       <p style={styles.eyebrow}>Guardian</p>
-      <h1 style={styles.title}>Mentorship</h1>
+      <h1 style={styles.title}>Fellowship</h1>
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 

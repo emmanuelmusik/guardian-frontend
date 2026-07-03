@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Settings as SettingsIcon, Users, Compass, Shield, BookOpen } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { apiFetch } from '../api';
 import NewEntryForm from '../components/NewEntryForm.jsx';
 import EntryCard from '../components/EntryCard.jsx';
+import NavMenu from '../components/NavMenu.jsx';
 
 export default function Journal({ session, profile }) {
   const [entries, setEntries] = useState([]);
@@ -61,28 +61,7 @@ export default function Journal({ session, profile }) {
       </header>
 
       <nav style={styles.nav}>
-        <Link to="/settings" style={styles.navLink}>
-          <SettingsIcon size={15} strokeWidth={2} />
-          Settings
-        </Link>
-        <Link to="/communities" style={styles.navLink}>
-          <Users size={15} strokeWidth={2} />
-          My Community
-        </Link>
-        <Link to="/mentorship" style={styles.navLink}>
-          <Compass size={15} strokeWidth={2} />
-          Mentorship
-        </Link>
-        <Link to="/bible" style={styles.navLink}>
-          <BookOpen size={15} strokeWidth={2} />
-          Bible
-        </Link>
-        {profile?.is_admin && (
-          <Link to="/admin/materials" style={styles.navLink}>
-            <Shield size={15} strokeWidth={2} />
-            Admin
-          </Link>
-        )}
+        <NavMenu isAdmin={profile?.is_admin} />
       </nav>
 
       <hr className="gd-horizon" style={{ marginBottom: 32, marginTop: 12 }} />
