@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../api';
+import { nameFor } from '../utils/formatUser';
 import CommentThread from '../components/CommentThread.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 
@@ -22,7 +23,7 @@ export default function MentorInbox({ profile }) {
   return (
     <div style={styles.page}>
       <PageHeader title="Shared with you" profile={profile} />
-      <Link to="/mentorship" style={styles.back}>← Back to Fellowship</Link>
+      <Link to="/mentorship" style={styles.back}>← Back to Mentorship</Link>
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 
@@ -36,7 +37,7 @@ export default function MentorInbox({ profile }) {
         <div key={entry.id} style={styles.entryCard}>
           <div style={styles.entryMeta}>
             <span style={styles.glyph}>{TYPE_GLYPH[entry.type] || '—'}</span>
-            <span style={styles.entryAuthor}>{entry.profiles?.display_name || 'Someone'}</span>
+            <span style={styles.entryAuthor}>{nameFor(entry.profiles)}</span>
             <span style={styles.entryDate}>
               {new Date(entry.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
             </span>

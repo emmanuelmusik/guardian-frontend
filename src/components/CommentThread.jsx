@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../api';
+import { nameFor } from '../utils/formatUser';
 
 export default function CommentThread({ entryId }) {
   const [comments, setComments] = useState([]);
@@ -35,7 +36,7 @@ export default function CommentThread({ entryId }) {
       {!loading &&
         comments.map((c) => (
           <div key={c.id} style={styles.comment}>
-            <span style={styles.commentAuthor}>{c.profiles?.display_name || 'Someone'}</span>
+            <span style={styles.commentAuthor}>{nameFor(c.profiles)}</span>
             <p style={styles.commentBody}>{c.body}</p>
           </div>
         ))}

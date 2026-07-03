@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
 
@@ -8,21 +8,29 @@ export default function FindPeople({ profile }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [actionState, setActionState] = useState({}); // userId -> 'sending' | 'sent' | error string
+  const debounceRef = useRef(null);
 
-  async function search(e) {
-    e?.preventDefault();
-    if (!query.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await apiFetch(`/api/users/search?q=${encodeURIComponent(query.trim())}`);
-      setResults(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    if (!query.trim()) {
+      setResults([]);
       setLoading(false);
+      return;
     }
-  }
+    setLoading(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const data = await apiFetch(`/api/users/search?q=${encodeURIComponent(query.trim())}`);
+        setResults(data);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(debounceRef.current);
+  }, [query]);
 
   async function connect(person) {
     setActionState((prev) => ({ ...prev, [person.id]: 'sending' }));
@@ -50,17 +58,14 @@ export default function FindPeople({ profile }) {
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 
-      <form onSubmit={search} style={styles.form}>
-        <input
-          placeholder="Search by username…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          style={styles.input}
-        />
-        <button type="submit" disabled={loading || !query.trim()} style={styles.button}>
-          {loading ? '…' : 'Search'}
-        </button>
-      </form>
+      <input
+        placeholder="Search by username…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        style={styles.input}
+      />
+
+      {loading && <p style={styles.dim}>Searching…</p>}
 
       {error && <p style={styles.errorText}>{error}</p>}
 
@@ -94,15 +99,12 @@ export default function FindPeople({ profile }) {
 
 const styles = {
   page: { maxWidth: 640, margin: '0 auto', padding: '48px 24px 80px' },
-  form: { display: 'flex', gap: 8, marginBottom: 24 },
   input: {
-    flex: 1,
+    width: '100%',
+    boxSizing: 'border-box',
     background: 'var(--gd-surface)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)',
     borderRadius: 8, padding: '10px 12px', fontFamily: 'var(--gd-font-mono)', fontSize: 14,
-  },
-  button: {
-    background: 'var(--gd-gold)', border: 'none', borderRadius: 8, padding: '10px 20px',
-    color: 'var(--gd-on-accent)', fontWeight: 600, fontSize: 14, cursor: 'pointer',
+    marginBottom: 20,
   },
   card: {
     background: 'var(--gd-surface)', border: '1px solid var(--gd-line)', borderRadius: 'var(--gd-radius)',

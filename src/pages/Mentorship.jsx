@@ -93,7 +93,7 @@ export default function Mentorship({ profile }) {
 
   return (
     <div style={styles.page}>
-      <PageHeader title="Fellowship" profile={profile} />
+      <PageHeader title="Mentorship" profile={profile} />
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 

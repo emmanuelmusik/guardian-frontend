@@ -4,6 +4,7 @@ import { apiFetch, apiUpload } from '../api';
 import CommentThread from '../components/CommentThread.jsx';
 import Attachment from '../components/Attachment.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import { nameFor, isOnline } from '../utils/formatUser';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
 const MAX_ATTACHMENT_MB = 25;
@@ -85,6 +86,26 @@ export default function CommunityDetail({ profile }) {
       }
     } catch (err) {
       setError(err.message);
+    }
+  }
+
+  async function removeMember(userId) {
+    if (!window.confirm('Remove this person from the community?')) return;
+    try {
+      await apiFetch(`/api/communities/${id}/members/${userId}`, { method: 'DELETE' });
+      setMembers((prev) => prev.filter((m) => m.profiles.id !== userId));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function deleteMessage(messageId) {
+    if (!window.confirm('Delete this message?')) return;
+    try {
+      await apiFetch(`/api/communities/${id}/messages/${messageId}`, { method: 'DELETE' });
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    } catch (err) {
+      setChatError(err.message);
     }
   }
 
@@ -175,7 +196,7 @@ export default function CommunityDetail({ profile }) {
       <Link to="/communities" style={styles.back}>← Back to My Community</Link>
 
       {community.description && <p style={styles.desc}>{community.description}</p>}
-      <p style={styles.mentorLine}>Led by {community.profiles?.display_name || 'a mentor'}</p>
+      <p style={styles.mentorLine}>Led by {nameFor(community.profiles)}</p>
       <Link to={`/communities/${id}/call`} style={styles.callButton}>📹 Join video/audio call</Link>
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
@@ -185,7 +206,7 @@ export default function CommunityDetail({ profile }) {
           <h3 style={styles.sectionTitle}>Join requests ({joinRequests.length})</h3>
           {joinRequests.map((r) => (
             <div key={r.user_id} style={styles.joinRequestCard}>
-              <span style={styles.joinRequestName}>{r.profiles?.display_name || 'Someone'}</span>
+              <span style={styles.joinRequestName}>{nameFor(r.profiles)}</span>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => respondToJoinRequest(r.user_id, 'accepted')} style={styles.acceptButton}>
                   Accept
@@ -203,7 +224,11 @@ export default function CommunityDetail({ profile }) {
       <div style={styles.memberRow}>
         {members.map((m) => (
           <span key={m.profiles.id} style={styles.memberChip}>
-            {m.profiles.display_name}{m.role === 'mentor' ? ' · mentor' : ''}
+            <span style={{ ...styles.onlineDot, ...(isOnline(m.profiles.last_seen_at) ? styles.onlineDotActive : {}) }} />
+            {nameFor(m.profiles)}{m.role === 'mentor' ? ' · mentor' : ''}
+            {community.myRole === 'mentor' && m.profiles.id !== community.mentor_id && m.role !== 'mentor' && (
+              <button onClick={() => removeMember(m.profiles.id)} style={styles.removeMemberButton}>✕</button>
+            )}
           </span>
         ))}
       </div>
@@ -213,10 +238,13 @@ export default function CommunityDetail({ profile }) {
         {messages.length === 0 && <p style={styles.dim}>No messages yet. Say something to the group.</p>}
         {messages.map((msg) => (
           <div key={msg.id} style={styles.chatMessage}>
-            <span style={styles.chatAuthor}>{msg.profiles?.display_name || 'Someone'}</span>
+            <span style={styles.chatAuthor}>{nameFor(msg.profiles)}</span>
             <span style={styles.chatTime}>
               {new Date(msg.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
             </span>
+            {(msg.author_id === profile?.id || community.myRole === 'mentor') && (
+              <button onClick={() => deleteMessage(msg.id)} style={styles.deleteMessageButton}>Delete</button>
+            )}
             {msg.body && <p style={styles.chatBody}>{msg.body}</p>}
             {msg.attachment_path && <Attachment path={msg.attachment_path} type={msg.attachment_type} />}
           </div>
@@ -255,7 +283,7 @@ export default function CommunityDetail({ profile }) {
         <div key={entry.id} style={styles.entryCard}>
           <div style={styles.entryMeta}>
             <span style={styles.glyph}>{TYPE_GLYPH[entry.type] || '—'}</span>
-            <span style={styles.entryAuthor}>{entry.profiles?.display_name || 'Someone'}</span>
+            <span style={styles.entryAuthor}>{nameFor(entry.profiles)}</span>
             <span style={styles.entryDate}>
               {new Date(entry.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
             </span>
@@ -349,8 +377,23 @@ const styles = {
   },
   memberRow: { display: 'flex', flexWrap: 'wrap', gap: 8 },
   memberChip: {
+    display: 'flex', alignItems: 'center', gap: 6,
     background: 'var(--gd-surface)', border: '1px solid var(--gd-line)', borderRadius: 20,
     padding: '6px 14px', fontSize: 12, color: 'var(--gd-text)',
+  },
+  onlineDot: {
+    width: 7, height: 7, borderRadius: '50%', background: 'var(--gd-line)', flexShrink: 0,
+  },
+  onlineDotActive: {
+    background: '#4CAF50',
+  },
+  removeMemberButton: {
+    background: 'transparent', border: 'none', color: 'var(--gd-error)',
+    cursor: 'pointer', fontSize: 12, padding: 0, marginLeft: 2,
+  },
+  deleteMessageButton: {
+    background: 'transparent', border: 'none', color: 'var(--gd-error)',
+    cursor: 'pointer', fontSize: 11, padding: 0, marginLeft: 8, fontFamily: 'var(--gd-font-mono)',
   },
   chatBox: {
     background: 'var(--gd-surface)', border: '1px solid var(--gd-line)',

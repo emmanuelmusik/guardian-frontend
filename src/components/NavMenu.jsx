@@ -1,15 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, Settings as SettingsIcon, Users, Compass, BookOpen, Library, Shield, LogOut, Search, NotebookPen } from 'lucide-react';
+import { Menu, Settings as SettingsIcon, Users, Compass, BookOpen, Library, Shield, LogOut, Search, NotebookPen, HelpCircle } from 'lucide-react';
 
 const ITEMS = [
   { to: '/', label: 'Journal', Icon: NotebookPen },
   { to: '/settings', label: 'Settings', Icon: SettingsIcon },
   { to: '/communities', label: 'My Community', Icon: Users },
-  { to: '/mentorship', label: 'Fellowship', Icon: Compass },
+  { to: '/mentorship', label: 'Mentorship', Icon: Compass },
   { to: '/find-people', label: 'Find People', Icon: Search },
   { to: '/bible', label: 'Bible', Icon: BookOpen },
   { to: '/materials', label: 'Materials', Icon: Library },
+  { to: '/faq', label: 'How to use Guardian', Icon: HelpCircle },
 ];
 
 export default function NavMenu({ isAdmin, onSignOut }) {
