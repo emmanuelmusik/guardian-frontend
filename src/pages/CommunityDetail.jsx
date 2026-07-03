@@ -133,6 +133,7 @@ export default function CommunityDetail() {
       <h1 style={styles.title}>{community.name}</h1>
       {community.description && <p style={styles.desc}>{community.description}</p>}
       <p style={styles.mentorLine}>Led by {community.profiles?.display_name || 'a mentor'}</p>
+      <Link to={`/communities/${id}/call`} style={styles.callButton}>📹 Join video/audio call</Link>
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 
@@ -255,6 +256,11 @@ const styles = {
   title: { fontFamily: 'var(--gd-font-display)', fontWeight: 500, fontSize: 30, margin: 0 },
   desc: { fontSize: 14, color: 'var(--gd-text-dim)', lineHeight: 1.6, marginTop: 10 },
   mentorLine: { fontSize: 12, color: 'var(--gd-violet)', fontFamily: 'var(--gd-font-mono)', marginTop: 8 },
+  callButton: {
+    display: 'inline-block', marginTop: 16, background: 'var(--gd-gold)', border: 'none',
+    borderRadius: 8, padding: '10px 20px', color: 'var(--gd-on-accent)', fontWeight: 600,
+    fontSize: 14, textDecoration: 'none',
+  },
   sectionTitle: {
     fontFamily: 'var(--gd-font-mono)', fontSize: 12, letterSpacing: '0.08em',
     textTransform: 'uppercase', color: 'var(--gd-text-dim)', margin: '32px 0 14px',

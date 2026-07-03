@@ -4,6 +4,8 @@ import { apiFetch } from '../api';
 
 export default function Mentorship({ profile }) {
   const [mentors, setMentors] = useState([]);
+  const [peers, setPeers] = useState([]);
+  const [incomingPeerRequests, setIncomingPeerRequests] = useState([]);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,7 +19,16 @@ export default function Mentorship({ profile }) {
     setError(null);
     try {
       if (profile.role === 'aspirant') {
-        setMentors(await apiFetch('/api/connections/mentors'));
+        const [mentorList, peerList, myPeerConnections] = await Promise.all([
+          apiFetch('/api/connections/mentors'),
+          apiFetch('/api/peer-connections/aspirants'),
+          apiFetch('/api/peer-connections'),
+        ]);
+        setMentors(mentorList);
+        setPeers(peerList);
+        setIncomingPeerRequests(
+          myPeerConnections.filter((c) => c.recipient_id === profile.id && c.status === 'pending')
+        );
       } else {
         setRequests(await apiFetch('/api/connections'));
       }
@@ -33,6 +44,30 @@ export default function Mentorship({ profile }) {
       await apiFetch('/api/connections', {
         method: 'POST',
         body: JSON.stringify({ mentor_id: mentorId }),
+      });
+      await load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function requestPeer(peerId) {
+    try {
+      await apiFetch('/api/peer-connections', {
+        method: 'POST',
+        body: JSON.stringify({ recipient_id: peerId }),
+      });
+      await load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function respondPeer(connectionId, status) {
+    try {
+      await apiFetch(`/api/peer-connections/${connectionId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
       });
       await load();
     } catch (err) {
@@ -69,6 +104,21 @@ export default function Mentorship({ profile }) {
 
       {!loading && profile.role === 'aspirant' && (
         <>
+          {incomingPeerRequests.length > 0 && (
+            <>
+              <h3 style={styles.sectionTitle}>Requests to connect</h3>
+              {incomingPeerRequests.map((r) => (
+                <div key={r.id} style={styles.card}>
+                  <h4 style={styles.cardTitle}>{r.requester?.display_name || 'A fellow aspirant'}</h4>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => respondPeer(r.id, 'accepted')} style={styles.actionButton}>Accept</button>
+                    <button onClick={() => respondPeer(r.id, 'declined')} style={styles.declineButton}>Decline</button>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
           <h3 style={styles.sectionTitle}>Find a mentor</h3>
           {mentors.length === 0 && <p style={styles.dim}>No mentors available yet.</p>}
           {mentors.map((m) => (
@@ -81,9 +131,29 @@ export default function Mentorship({ profile }) {
               {m.connectionStatus === 'pending' && <span style={styles.statusTagDim}>Requested</span>}
               {m.connectionStatus === 'declined' && <span style={styles.statusTagDim}>Declined</span>}
               {!m.connectionStatus && (
-                <button onClick={() => requestMentor(m.id)} style={styles.actionButton}>
-                  Request
-                </button>
+                <button onClick={() => requestMentor(m.id)} style={styles.actionButton}>Request</button>
+              )}
+            </div>
+          ))}
+
+          <h3 style={styles.sectionTitle}>Connect with a fellow aspirant</h3>
+          {peers.length === 0 && <p style={styles.dim}>No fellow aspirants to connect with yet.</p>}
+          {peers.map((p) => (
+            <div key={p.id} style={styles.card}>
+              <div>
+                <h4 style={styles.cardTitle}>{p.display_name}</h4>
+                {p.bio && <p style={styles.cardDesc}>{p.bio}</p>}
+              </div>
+              {p.connection?.status === 'accepted' && <span style={styles.statusTag}>Connected</span>}
+              {p.connection?.status === 'pending' && p.connection?.initiatedByMe && (
+                <span style={styles.statusTagDim}>Requested</span>
+              )}
+              {p.connection?.status === 'pending' && !p.connection?.initiatedByMe && (
+                <span style={styles.statusTagDim}>Awaiting your reply above</span>
+              )}
+              {p.connection?.status === 'declined' && <span style={styles.statusTagDim}>Declined</span>}
+              {!p.connection && (
+                <button onClick={() => requestPeer(p.id)} style={styles.actionButton}>Connect</button>
               )}
             </div>
           ))}

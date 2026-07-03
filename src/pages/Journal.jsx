@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Settings as SettingsIcon, Users, Compass, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, Users, Compass, Shield, BookOpen } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { apiFetch } from '../api';
 import NewEntryForm from '../components/NewEntryForm.jsx';
@@ -72,6 +72,10 @@ export default function Journal({ session, profile }) {
         <Link to="/mentorship" style={styles.navLink}>
           <Compass size={15} strokeWidth={2} />
           Mentorship
+        </Link>
+        <Link to="/bible" style={styles.navLink}>
+          <BookOpen size={15} strokeWidth={2} />
+          Bible
         </Link>
         {profile?.is_admin && (
           <Link to="/admin/materials" style={styles.navLink}>
