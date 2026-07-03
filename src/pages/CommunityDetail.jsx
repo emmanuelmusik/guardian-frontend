@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../api';
+import { supabase } from '../supabaseClient';
 import CommentThread from '../components/CommentThread.jsx';
+import Attachment from '../components/Attachment.jsx';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
+const MAX_ATTACHMENT_MB = 25;
+const MAX_ATTACHMENT_BYTES = MAX_ATTACHMENT_MB * 1024 * 1024;
 
 export default function CommunityDetail() {
   const { id } = useParams();
@@ -11,8 +15,16 @@ export default function CommunityDetail() {
   const [members, setMembers] = useState([]);
   const [entries, setEntries] = useState([]);
   const [materials, setMaterials] = useState([]);
+  const [featuredLibrary, setFeaturedLibrary] = useState([]);
+  const [selectedFeatured, setSelectedFeatured] = useState('');
+  const [recommending, setRecommending] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [messageBody, setMessageBody] = useState('');
+  const [file, setFile] = useState(null);
+  const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [chatError, setChatError] = useState(null);
   const [openThread, setOpenThread] = useState(null);
 
   useEffect(() => {
@@ -23,20 +35,107 @@ export default function CommunityDetail() {
     setLoading(true);
     setError(null);
     try {
-      const [c, m, e, s] = await Promise.all([
+      const [c, m, e, s, msgs] = await Promise.all([
         apiFetch(`/api/communities/${id}`),
         apiFetch(`/api/communities/${id}/members`),
         apiFetch(`/api/entries/community/${id}`),
         apiFetch(`/api/study-materials/community/${id}`),
+        apiFetch(`/api/communities/${id}/messages`),
       ]);
       setCommunity(c);
       setMembers(m);
       setEntries(e);
       setMaterials(s);
+      setMessages(msgs);
+
+      if (c.myRole === 'mentor') {
+        const library = await apiFetch('/api/featured-materials');
+        setFeaturedLibrary(library);
+        setSelectedFeatured(library[0]?.id || '');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  function attachmentTypeFor(mimeType) {
+    if (mimeType.startsWith('image/')) return 'image';
+    if (mimeType.startsWith('video/')) return 'video';
+    if (mimeType.startsWith('audio/')) return 'audio';
+    return null;
+  }
+
+  function handleFileSelect(e) {
+    const selected = e.target.files?.[0];
+    if (!selected) return;
+
+    if (selected.size > MAX_ATTACHMENT_BYTES) {
+      setChatError(
+        `That file is ${(selected.size / (1024 * 1024)).toFixed(1)} MB — attachments are limited to ${MAX_ATTACHMENT_MB} MB.`
+      );
+      e.target.value = '';
+      setFile(null);
+      return;
+    }
+
+    setChatError(null);
+    setFile(selected);
+  }
+
+  async function recommendMaterial(e) {
+    e.preventDefault();
+    if (!selectedFeatured) return;
+    setRecommending(true);
+    try {
+      const created = await apiFetch('/api/study-materials', {
+        method: 'POST',
+        body: JSON.stringify({ community_id: id, featured_material_id: selectedFeatured }),
+      });
+      setMaterials((prev) => [created, ...prev]);
+    } catch (err) {
+      setChatError(err.message);
+    } finally {
+      setRecommending(false);
+    }
+  }
+
+  async function sendMessage(e) {
+    e.preventDefault();
+    if (!messageBody.trim() && !file) return;
+    setSending(true);
+    setChatError(null);
+    try {
+      let attachment_path = null;
+      let attachment_type = null;
+
+      if (file) {
+        attachment_type = attachmentTypeFor(file.type);
+        if (!attachment_type) {
+          setChatError('Only images, videos, and audio files are supported.');
+          setSending(false);
+          return;
+        }
+        const path = `${id}/${crypto.randomUUID()}-${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('community-media')
+          .upload(path, file);
+        if (uploadError) throw uploadError;
+        attachment_path = path;
+      }
+
+      const created = await apiFetch(`/api/communities/${id}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ body: messageBody.trim(), attachment_path, attachment_type }),
+      });
+      setMessages((prev) => [...prev, created]);
+      setMessageBody('');
+      setFile(null);
+    } catch (err) {
+      setChatError(err.message);
+    } finally {
+      setSending(false);
     }
   }
 
@@ -45,7 +144,7 @@ export default function CommunityDetail() {
 
   return (
     <div style={styles.page}>
-      <Link to="/communities" style={styles.back}>← Back to communities</Link>
+      <Link to="/communities" style={styles.back}>← Back to My Community</Link>
 
       <p style={styles.eyebrow}>Guardian</p>
       <h1 style={styles.title}>{community.name}</h1>
@@ -61,6 +160,47 @@ export default function CommunityDetail() {
             {m.profiles.display_name}{m.role === 'mentor' ? ' · mentor' : ''}
           </span>
         ))}
+      </div>
+
+      <h3 style={styles.sectionTitle}>Discussion</h3>
+      <div style={styles.chatBox}>
+        {messages.length === 0 && <p style={styles.dim}>No messages yet. Say something to the group.</p>}
+        {messages.map((msg) => (
+          <div key={msg.id} style={styles.chatMessage}>
+            <span style={styles.chatAuthor}>{msg.profiles?.display_name || 'Someone'}</span>
+            <span style={styles.chatTime}>
+              {new Date(msg.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            {msg.body && <p style={styles.chatBody}>{msg.body}</p>}
+            {msg.attachment_path && <Attachment path={msg.attachment_path} type={msg.attachment_type} />}
+          </div>
+        ))}
+        {chatError && <p style={styles.errorText}>{chatError}</p>}
+        <form onSubmit={sendMessage} style={styles.chatForm}>
+          <input
+            placeholder="Message the community…"
+            value={messageBody}
+            onChange={(e) => setMessageBody(e.target.value)}
+            style={styles.chatInput}
+          />
+          <label style={styles.attachButton} title={`Attach a photo, video, or audio file (max ${MAX_ATTACHMENT_MB} MB)`}>
+            📎
+            <input
+              type="file"
+              accept="image/*,video/*,audio/*"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+            />
+          </label>
+          <button type="submit" disabled={sending || (!messageBody.trim() && !file)} style={styles.chatSend}>
+            {sending ? '…' : 'Send'}
+          </button>
+        </form>
+        {file && (
+          <p style={styles.filePreview}>
+            {file.name} <button onClick={() => setFile(null)} style={styles.removeFile}>✕</button>
+          </p>
+        )}
       </div>
 
       <h3 style={styles.sectionTitle}>Shared entries</h3>
@@ -87,6 +227,30 @@ export default function CommunityDetail() {
       ))}
 
       <h3 style={styles.sectionTitle}>Study materials</h3>
+
+      {community.myRole === 'mentor' && (
+        <form onSubmit={recommendMaterial} style={styles.recommendForm}>
+          {featuredLibrary.length === 0 ? (
+            <p style={styles.dim}>No featured materials in the library yet — check back once an admin adds some.</p>
+          ) : (
+            <>
+              <select
+                value={selectedFeatured}
+                onChange={(e) => setSelectedFeatured(e.target.value)}
+                style={styles.recommendSelect}
+              >
+                {featuredLibrary.map((m) => (
+                  <option key={m.id} value={m.id}>{m.title} ({m.type})</option>
+                ))}
+              </select>
+              <button type="submit" disabled={recommending} style={styles.recommendButton}>
+                {recommending ? 'Adding…' : 'Recommend to community'}
+              </button>
+            </>
+          )}
+        </form>
+      )}
+
       {materials.length === 0 && <p style={styles.dim}>Nothing added yet.</p>}
       {materials.map((mat) => (
         <a key={mat.id} href={mat.url} target="_blank" rel="noreferrer" style={styles.materialCard}>
@@ -117,6 +281,40 @@ const styles = {
     background: 'var(--gd-surface)', border: '1px solid var(--gd-line)', borderRadius: 20,
     padding: '6px 14px', fontSize: 12, color: 'var(--gd-text)',
   },
+  chatBox: {
+    background: 'var(--gd-surface)', border: '1px solid var(--gd-line)',
+    borderRadius: 'var(--gd-radius)', padding: 18,
+  },
+  chatMessage: { marginBottom: 12 },
+  chatAuthor: {
+    fontFamily: 'var(--gd-font-mono)', fontSize: 11, color: 'var(--gd-violet)',
+    textTransform: 'uppercase', letterSpacing: '0.05em',
+  },
+  chatTime: {
+    fontFamily: 'var(--gd-font-mono)', fontSize: 10, color: 'var(--gd-text-dim)', marginLeft: 8,
+  },
+  chatBody: { fontSize: 14, lineHeight: 1.5, color: 'var(--gd-text)', margin: '2px 0 0' },
+  chatForm: { display: 'flex', gap: 8, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--gd-line)' },
+  chatInput: {
+    flex: 1, background: 'var(--gd-void)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)',
+    borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'var(--gd-font-body)',
+  },
+  chatSend: {
+    background: 'var(--gd-gold)', border: 'none', borderRadius: 8, padding: '10px 18px',
+    color: 'var(--gd-on-accent)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+  },
+  attachButton: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: 40, background: 'var(--gd-void)', border: '1px solid var(--gd-line)',
+    borderRadius: 8, cursor: 'pointer', fontSize: 16,
+  },
+  filePreview: {
+    fontSize: 12, color: 'var(--gd-text-dim)', marginTop: 8,
+  },
+  removeFile: {
+    background: 'transparent', border: 'none', color: 'var(--gd-error)',
+    cursor: 'pointer', fontSize: 12, marginLeft: 4,
+  },
   entryCard: {
     background: 'var(--gd-surface)', border: '1px solid var(--gd-line)',
     borderRadius: 'var(--gd-radius)', padding: 18, marginBottom: 14,
@@ -145,6 +343,18 @@ const styles = {
     textTransform: 'uppercase', border: '1px solid var(--gd-gold-dim)', borderRadius: 4, padding: '2px 6px',
   },
   materialTitle: { fontSize: 14 },
+  recommendForm: {
+    display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap',
+  },
+  recommendSelect: {
+    flex: 1, minWidth: 200, background: 'var(--gd-void)', color: 'var(--gd-text)',
+    border: '1px solid var(--gd-line)', borderRadius: 8, padding: '10px 12px',
+    fontFamily: 'var(--gd-font-body)', fontSize: 14,
+  },
+  recommendButton: {
+    background: 'var(--gd-gold)', border: 'none', borderRadius: 8, padding: '10px 18px',
+    color: 'var(--gd-on-accent)', fontSize: 14, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+  },
   dim: { color: 'var(--gd-text-dim)', fontSize: 14 },
   errorText: { color: 'var(--gd-error)', fontSize: 14 },
 };

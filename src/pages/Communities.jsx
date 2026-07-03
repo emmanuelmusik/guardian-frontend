@@ -68,7 +68,7 @@ export default function Communities({ profile }) {
       <Link to="/" style={styles.back}>← Back to journal</Link>
 
       <p style={styles.eyebrow}>Guardian</p>
-      <h1 style={styles.title}>Communities</h1>
+      <h1 style={styles.title}>My Community</h1>
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 

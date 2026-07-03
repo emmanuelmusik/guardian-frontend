@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Settings as SettingsIcon, Users, Compass, Shield } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { apiFetch } from '../api';
 import NewEntryForm from '../components/NewEntryForm.jsx';
 import EntryCard from '../components/EntryCard.jsx';
 
-export default function Journal({ session }) {
+export default function Journal({ session, profile }) {
   const [entries, setEntries] = useState([]);
   const [communities, setCommunities] = useState([]);
   const [hasMentor, setHasMentor] = useState(false);
@@ -59,9 +60,26 @@ export default function Journal({ session }) {
         </button>
       </header>
 
-      <Link to="/settings" style={styles.settingsLink}>Settings</Link>
-      <Link to="/communities" style={{ ...styles.settingsLink, marginLeft: 16 }}>Communities</Link>
-      <Link to="/mentorship" style={{ ...styles.settingsLink, marginLeft: 16 }}>Mentorship</Link>
+      <nav style={styles.nav}>
+        <Link to="/settings" style={styles.navLink}>
+          <SettingsIcon size={15} strokeWidth={2} />
+          Settings
+        </Link>
+        <Link to="/communities" style={styles.navLink}>
+          <Users size={15} strokeWidth={2} />
+          My Community
+        </Link>
+        <Link to="/mentorship" style={styles.navLink}>
+          <Compass size={15} strokeWidth={2} />
+          Mentorship
+        </Link>
+        {profile?.is_admin && (
+          <Link to="/admin/materials" style={styles.navLink}>
+            <Shield size={15} strokeWidth={2} />
+            Admin
+          </Link>
+        )}
+      </nav>
 
       <hr className="gd-horizon" style={{ marginBottom: 32, marginTop: 12 }} />
 
@@ -126,6 +144,19 @@ const styles = {
     fontSize: 13,
     textDecoration: 'none',
     marginTop: 8,
+  },
+  nav: {
+    display: 'flex',
+    gap: 20,
+    marginTop: 10,
+  },
+  navLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    color: 'var(--gd-text-dim)',
+    fontSize: 13,
+    textDecoration: 'none',
   },
   dim: {
     color: 'var(--gd-text-dim)',

@@ -10,6 +10,7 @@ import Communities from './pages/Communities.jsx';
 import CommunityDetail from './pages/CommunityDetail.jsx';
 import Mentorship from './pages/Mentorship.jsx';
 import MentorInbox from './pages/MentorInbox.jsx';
+import AdminMaterials from './pages/AdminMaterials.jsx';
 
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = loading, null = signed out
@@ -59,7 +60,19 @@ export default function App() {
             ) : !profile?.onboarded ? (
               <Navigate to="/onboarding" />
             ) : (
-              <Journal session={session} />
+              <Journal session={session} profile={profile} />
+            )
+          }
+        />
+        <Route
+          path="/admin/materials"
+          element={
+            !session ? (
+              <Navigate to="/login" />
+            ) : !profile?.onboarded ? (
+              <Navigate to="/onboarding" />
+            ) : (
+              <AdminMaterials profile={profile} />
             )
           }
         />
