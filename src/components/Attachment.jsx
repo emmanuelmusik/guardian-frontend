@@ -1,22 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { apiFetch } from '../api';
 
 export default function Attachment({ path, type }) {
   const [url, setUrl] = useState(null);
+  const [failed, setFailed] = useState(false);
+
+  // The community id is the first folder segment of the storage path,
+  // e.g. "abc-123/uuid-photo.png" -> "abc-123"
+  const communityId = path.split('/')[0];
 
   useEffect(() => {
     let cancelled = false;
-    supabase.storage
-      .from('community-media')
-      .createSignedUrl(path, 3600) // expires in 1 hour — re-fetched each time the page loads
-      .then(({ data }) => {
-        if (!cancelled && data) setUrl(data.signedUrl);
+    apiFetch(`/api/communities/${communityId}/media-url?path=${encodeURIComponent(path)}`)
+      .then((data) => {
+        if (!cancelled) setUrl(data.url);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
       });
     return () => {
       cancelled = true;
     };
   }, [path]);
 
+  if (failed) return <p style={styles.loading}>Attachment unavailable.</p>;
   if (!url) return <p style={styles.loading}>Loading attachment…</p>;
 
   if (type === 'image') return <img src={url} alt="Shared attachment" style={styles.media} />;

@@ -25,3 +25,26 @@ export async function apiFetch(path, options = {}) {
   if (response.status === 204) return null;
   return response.json();
 }
+
+// Multipart upload to the Guardian backend (files can't go through
+// JSON, so this skips the Content-Type header and sends FormData).
+export async function apiUpload(path, file) {
+  const { data } = await supabase.auth.getSession();
+  const token = data?.session?.access_token;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || `Upload failed: ${response.status}`);
+  }
+
+  return response.json();
+}

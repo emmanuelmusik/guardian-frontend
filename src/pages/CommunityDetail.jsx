@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { apiFetch } from '../api';
-import { supabase } from '../supabaseClient';
+import { apiFetch, apiUpload } from '../api';
 import CommentThread from '../components/CommentThread.jsx';
 import Attachment from '../components/Attachment.jsx';
 
@@ -60,13 +59,6 @@ export default function CommunityDetail() {
     }
   }
 
-  function attachmentTypeFor(mimeType) {
-    if (mimeType.startsWith('image/')) return 'image';
-    if (mimeType.startsWith('video/')) return 'video';
-    if (mimeType.startsWith('audio/')) return 'audio';
-    return null;
-  }
-
   function handleFileSelect(e) {
     const selected = e.target.files?.[0];
     if (!selected) return;
@@ -111,18 +103,9 @@ export default function CommunityDetail() {
       let attachment_type = null;
 
       if (file) {
-        attachment_type = attachmentTypeFor(file.type);
-        if (!attachment_type) {
-          setChatError('Only images, videos, and audio files are supported.');
-          setSending(false);
-          return;
-        }
-        const path = `${id}/${crypto.randomUUID()}-${file.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from('community-media')
-          .upload(path, file);
-        if (uploadError) throw uploadError;
-        attachment_path = path;
+        const uploaded = await apiUpload(`/api/communities/${id}/media`, file);
+        attachment_path = uploaded.attachment_path;
+        attachment_type = uploaded.attachment_type;
       }
 
       const created = await apiFetch(`/api/communities/${id}/messages`, {
