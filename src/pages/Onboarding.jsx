@@ -112,7 +112,7 @@ const styles = {
     border: 'none',
     borderRadius: 'var(--gd-radius)',
     padding: '14px 20px',
-    color: 'var(--gd-void)',
+    color: 'var(--gd-on-accent)',
     fontWeight: 600,
     fontSize: 15,
     cursor: 'pointer',

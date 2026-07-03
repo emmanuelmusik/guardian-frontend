@@ -43,6 +43,10 @@ export default function Journal({ session }) {
     setEntries((prev) => [created, ...prev]);
   }
 
+  function handleUpdateEntry(updated) {
+    setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+  }
+
   return (
     <div style={styles.page}>
       <header style={styles.header}>
@@ -70,7 +74,13 @@ export default function Journal({ session }) {
       )}
 
       {entries.map((entry) => (
-        <EntryCard key={entry.id} entry={entry} />
+        <EntryCard
+          key={entry.id}
+          entry={entry}
+          communities={communities}
+          hasMentor={hasMentor}
+          onUpdate={handleUpdateEntry}
+        />
       ))}
     </div>
   );

@@ -1,15 +1,16 @@
 :root {
-  /* Color — night-watch palette: the record kept through the watches of the night */
-  --gd-void: #12121f;        /* page background, deep indigo-black */
-  --gd-surface: #1c1d2e;     /* cards, panels */
-  --gd-surface-raised: #24263a; /* hover/active surface */
-  --gd-line: #33344a;        /* hairlines, borders */
-  --gd-text: #ede9df;        /* primary text, warm off-white */
-  --gd-text-dim: #9b9ab0;    /* secondary text */
-  --gd-gold: #c9a15c;        /* dawn accent — revelation, primary actions */
-  --gd-gold-dim: #8a7245;
-  --gd-violet: #7c6ba8;      /* dusk accent — mentor/community */
-  --gd-error: #c9705c;
+  /* Color — open-sky palette: light, airy, easy to read at a glance */
+  --gd-void: #eaf6ff;        /* page background, soft sky blue */
+  --gd-surface: #ffffff;     /* cards, panels */
+  --gd-surface-raised: #f3faff; /* hover/active surface */
+  --gd-line: #c7e3f5;        /* hairlines, borders */
+  --gd-text: #1b2a3a;        /* primary text, deep navy */
+  --gd-text-dim: #5b7387;    /* secondary text */
+  --gd-gold: #e8a33d;        /* sun accent — primary actions */
+  --gd-gold-dim: #c98826;
+  --gd-violet: #3b6ea5;      /* deeper sky blue — mentor/community tags */
+  --gd-error: #d64545;
+  --gd-on-accent: #14202c;   /* text placed on top of the gold accent */
 
   /* Type */
   --gd-font-display: 'Fraunces', serif;
@@ -44,14 +45,13 @@ body {
 }
 
 /* Signature element: the horizon rule — a hairline that shifts from
-   indigo to gold, used as the one recurring divider across the app,
-   standing in for dawn breaking over the night's record. */
+   pale sky-blue to warm gold, the one recurring divider across the app. */
 .gd-horizon {
   height: 1px;
   width: 100%;
   background: linear-gradient(90deg, var(--gd-line) 0%, var(--gd-gold-dim) 60%, var(--gd-gold) 100%);
   border: none;
-  opacity: 0.6;
+  opacity: 0.7;
 }
 
 .gd-loading {
@@ -65,7 +65,9 @@ body {
   letter-spacing: 0.06em;
 }
 
-
+button {
+  font-family: var(--gd-font-body);
+}
 
 a {
   color: inherit;
@@ -73,7 +75,7 @@ a {
 
 ::selection {
   background: var(--gd-gold-dim);
-  color: var(--gd-void);
+  color: var(--gd-on-accent);
 }
 
 :focus-visible {

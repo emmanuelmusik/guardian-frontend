@@ -142,7 +142,7 @@ const styles = {
   cardDesc: { fontSize: 13, color: 'var(--gd-text-dim)', margin: 0, lineHeight: 1.5 },
   actionButton: {
     background: 'var(--gd-gold)', border: 'none', borderRadius: 8, padding: '8px 16px',
-    color: 'var(--gd-void)', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+    color: 'var(--gd-on-accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
   },
   declineButton: {
     background: 'transparent', border: '1px solid var(--gd-line)', borderRadius: 8, padding: '8px 16px',

@@ -1,12 +1,41 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { apiFetch } from '../api';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
 
-export default function EntryCard({ entry }) {
-  const date = new Date(entry.created_at).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-  });
+export default function EntryCard({ entry, communities = [], hasMentor = false, onUpdate }) {
+  const [editing, setEditing] = useState(false);
+  const [visibility, setVisibility] = useState(entry.visibility);
+  const [communityId, setCommunityId] = useState(entry.shared_community_id || communities[0]?.id || '');
+  const [saving, setSaving] = useState(false);
+
+  const date = new Date(entry.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+  async function saveSharing() {
+    setSaving(true);
+    try {
+      const updated = await apiFetch(`/api/entries/${entry.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          visibility,
+          shared_community_id: visibility === 'community' ? communityId : null,
+        }),
+      });
+      onUpdate?.(updated);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function cancelEdit() {
+    setVisibility(entry.visibility);
+    setCommunityId(entry.shared_community_id || communities[0]?.id || '');
+    setEditing(false);
+  }
+
+  const visibilityLabel =
+    entry.visibility === 'private' ? 'Private' : entry.visibility === 'mentor' ? 'Shared with mentor' : 'Shared with community';
 
   return (
     <div style={styles.card}>
@@ -17,9 +46,34 @@ export default function EntryCard({ entry }) {
       </div>
       {entry.title && <h3 style={styles.title}>{entry.title}</h3>}
       <p style={styles.content}>{entry.content}</p>
-      <span style={styles.visibility}>
-        {entry.visibility === 'private' ? 'Private' : entry.visibility === 'mentor' ? 'Shared with mentor' : 'Shared with community'}
-      </span>
+
+      {!editing && (
+        <div style={styles.footer}>
+          <span style={styles.visibility}>{visibilityLabel}</span>
+          <button onClick={() => setEditing(true)} style={styles.shareButton}>Share…</button>
+        </div>
+      )}
+
+      {editing && (
+        <div style={styles.editRow}>
+          <select value={visibility} onChange={(e) => setVisibility(e.target.value)} style={styles.select}>
+            <option value="private">Private</option>
+            <option value="mentor" disabled={!hasMentor}>Share with mentor</option>
+            <option value="community" disabled={communities.length === 0}>Share with a community</option>
+          </select>
+          {visibility === 'community' && (
+            <select value={communityId} onChange={(e) => setCommunityId(e.target.value)} style={styles.select}>
+              {communities.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          )}
+          <button onClick={saveSharing} disabled={saving} style={styles.saveButton}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+          <button onClick={cancelEdit} style={styles.cancelButton}>Cancel</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -32,16 +86,8 @@ const styles = {
     padding: 18,
     marginBottom: 14,
   },
-  meta: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  glyph: {
-    color: 'var(--gd-gold)',
-    fontSize: 14,
-  },
+  meta: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
+  glyph: { color: 'var(--gd-gold)', fontSize: 14 },
   type: {
     fontFamily: 'var(--gd-font-mono)',
     fontSize: 11,
@@ -69,9 +115,57 @@ const styles = {
     margin: '0 0 10px',
     whiteSpace: 'pre-wrap',
   },
+  footer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   visibility: {
     fontSize: 11,
     color: 'var(--gd-violet)',
     fontFamily: 'var(--gd-font-mono)',
+  },
+  shareButton: {
+    background: 'transparent',
+    border: '1px solid var(--gd-line)',
+    borderRadius: 8,
+    padding: '6px 12px',
+    color: 'var(--gd-text-dim)',
+    fontSize: 12,
+    cursor: 'pointer',
+  },
+  editRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 8,
+    alignItems: 'center',
+    paddingTop: 10,
+    borderTop: '1px solid var(--gd-line)',
+  },
+  select: {
+    background: 'var(--gd-void)',
+    color: 'var(--gd-text)',
+    border: '1px solid var(--gd-line)',
+    borderRadius: 8,
+    padding: '8px 10px',
+    fontFamily: 'var(--gd-font-body)',
+    fontSize: 13,
+  },
+  saveButton: {
+    background: 'var(--gd-gold)',
+    border: 'none',
+    borderRadius: 8,
+    padding: '8px 16px',
+    color: 'var(--gd-on-accent)',
+    fontWeight: 600,
+    fontSize: 13,
+    cursor: 'pointer',
+  },
+  cancelButton: {
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--gd-text-dim)',
+    fontSize: 13,
+    cursor: 'pointer',
   },
 };

@@ -55,7 +55,7 @@ const styles = {
     justifyContent: 'center',
     padding: 24,
     background:
-      'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(201,161,92,0.08), transparent), var(--gd-void)',
+      'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(232,163,61,0.12), transparent), var(--gd-void)',
   },
   card: {
     maxWidth: 420,

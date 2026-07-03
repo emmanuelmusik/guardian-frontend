@@ -93,7 +93,7 @@ const styles = {
     border: 'none',
     borderRadius: 8,
     padding: '8px 16px',
-    color: 'var(--gd-void)',
+    color: 'var(--gd-on-accent)',
     fontSize: 13,
     fontWeight: 600,
     cursor: 'pointer',
