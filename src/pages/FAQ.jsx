@@ -20,7 +20,7 @@ const SECTIONS = [
   },
   {
     title: 'My Community',
-    body: "Join communities led by mentors, or create your own if you're a mentor. Requesting to join needs the mentor's approval before you see what's shared inside. Once in, a community page has member list (with who's online), group chat (with photo/video/audio sharing), shared journal entries with feedback threads, study materials, and a video/audio call button. Mentors can edit or delete the community, and remove members; anyone can leave on their own.",
+    body: "Join communities led by mentors, or create your own if you're a mentor. Requesting to join needs the mentor's approval before you see what's shared inside. Once in, a community page has member list (with who's online), group chat (with photo/video/audio sharing), shared journal entries with feedback threads, study materials, and a video/audio call button. While on a call, you can navigate anywhere else in the app — it shrinks to a small floating bubble you can tap to expand back to full screen, or use to leave. Mentors can edit or delete the community, and remove members; anyone can leave on their own.",
   },
   {
     title: 'Mentorship',
