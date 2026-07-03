@@ -48,6 +48,7 @@ export default function Journal({ session }) {
       </header>
 
       <Link to="/settings" style={styles.settingsLink}>Settings</Link>
+      <Link to="/communities" style={{ ...styles.settingsLink, marginLeft: 16 }}>Communities</Link>
 
       <hr className="gd-horizon" style={{ marginBottom: 32, marginTop: 12 }} />
 

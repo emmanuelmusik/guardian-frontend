@@ -6,6 +6,7 @@ import Login from './pages/Login.jsx';
 import Onboarding from './pages/Onboarding.jsx';
 import Journal from './pages/Journal.jsx';
 import Settings from './pages/Settings.jsx';
+import Communities from './pages/Communities.jsx';
 
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = loading, null = signed out
@@ -68,6 +69,18 @@ export default function App() {
               <Navigate to="/onboarding" />
             ) : (
               <Settings profile={profile} onUpdate={setProfile} />
+            )
+          }
+        />
+        <Route
+          path="/communities"
+          element={
+            !session ? (
+              <Navigate to="/login" />
+            ) : !profile?.onboarded ? (
+              <Navigate to="/onboarding" />
+            ) : (
+              <Communities profile={profile} />
             )
           }
         />
