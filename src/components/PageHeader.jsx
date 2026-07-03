@@ -1,10 +1,11 @@
 import React from 'react';
 import { supabase } from '../supabaseClient';
 import NavMenu from './NavMenu.jsx';
+import NotificationBell from './NotificationBell.jsx';
 
-// Shared header used on every page: title on the left, the dropdown
-// menu (navigation + sign out) top-right, so no page is a dead end
-// that only a "back" link can escape.
+// Shared header used on every page: title on the left, notifications
+// and the dropdown menu (navigation + sign out) top-right, so no page
+// is a dead end that only a "back" link can escape.
 export default function PageHeader({ title, subtitle, profile }) {
   return (
     <header style={styles.header}>
@@ -13,7 +14,10 @@ export default function PageHeader({ title, subtitle, profile }) {
         <h1 style={styles.heading}>{title}</h1>
         {subtitle && <p style={styles.subtitle}>{subtitle}</p>}
       </div>
-      <NavMenu isAdmin={profile?.is_admin} onSignOut={() => supabase.auth.signOut()} />
+      <div style={styles.actions}>
+        <NotificationBell />
+        <NavMenu isAdmin={profile?.is_admin} onSignOut={() => supabase.auth.signOut()} />
+      </div>
     </header>
   );
 }
@@ -24,6 +28,11 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 24,
+  },
+  actions: {
+    display: 'flex',
+    gap: 8,
+    alignItems: 'center',
   },
   eyebrow: {
     fontFamily: 'var(--gd-font-mono)',

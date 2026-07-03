@@ -74,6 +74,12 @@ export default function Bible({ profile }) {
     }
   }
 
+  function jumpToVerse(verseNum) {
+    setSelectedVerse(verseNum);
+    const el = document.getElementById(`verse-${verseNum}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   return (
     <div style={styles.page}>
       <PageHeader title="Bible" profile={profile} />
@@ -102,6 +108,21 @@ export default function Bible({ profile }) {
       {error && <p style={styles.errorText}>Couldn't load that passage — try a different chapter or version.</p>}
       {loading && <p style={styles.dim}>Loading…</p>}
 
+      {passage && !loading && passage.verses && (
+        <div style={styles.pickerRow}>
+          <select
+            value={selectedVerse || ''}
+            onChange={(e) => jumpToVerse(Number(e.target.value))}
+            style={styles.select}
+          >
+            <option value="">Jump to verse…</option>
+            {passage.verses.map((v) => (
+              <option key={v.verse} value={v.verse}>Verse {v.verse}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {passage && !loading && (
         <div style={styles.card}>
           <p style={styles.reference}>{passage.reference} · {passage.translation_name}</p>
@@ -109,6 +130,7 @@ export default function Bible({ profile }) {
             passage.verses.map((v) => (
               <p
                 key={v.verse}
+                id={`verse-${v.verse}`}
                 onClick={() => setSelectedVerse(v.verse === selectedVerse ? null : v.verse)}
                 style={{
                   ...styles.verse,

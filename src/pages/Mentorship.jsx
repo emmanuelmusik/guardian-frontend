@@ -155,6 +155,10 @@ export default function Mentorship({ profile }) {
               )}
             </div>
           ))}
+
+          {peers.some((p) => p.connection?.status === 'accepted') && (
+            <Link to="/peer-inbox" style={styles.inboxLink}>See what fellow aspirants have shared with you →</Link>
+          )}
         </>
       )}
 

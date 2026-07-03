@@ -27,6 +27,8 @@ export default function CommunityDetail({ profile }) {
   const [chatError, setChatError] = useState(null);
   const [openThread, setOpenThread] = useState(null);
 
+  const [joinRequests, setJoinRequests] = useState([]);
+
   useEffect(() => {
     load();
   }, [id]);
@@ -35,28 +37,54 @@ export default function CommunityDetail({ profile }) {
     setLoading(true);
     setError(null);
     try {
-      const [c, m, e, s, msgs] = await Promise.all([
-        apiFetch(`/api/communities/${id}`),
+      const c = await apiFetch(`/api/communities/${id}`);
+      setCommunity(c);
+
+      if (c.myStatus !== 'accepted') {
+        setLoading(false);
+        return;
+      }
+
+      const [m, e, s, msgs] = await Promise.all([
         apiFetch(`/api/communities/${id}/members`),
         apiFetch(`/api/entries/community/${id}`),
         apiFetch(`/api/study-materials/community/${id}`),
         apiFetch(`/api/communities/${id}/messages`),
       ]);
-      setCommunity(c);
       setMembers(m);
       setEntries(e);
       setMaterials(s);
       setMessages(msgs);
 
       if (c.myRole === 'mentor') {
-        const library = await apiFetch('/api/featured-materials');
+        const [library, requests] = await Promise.all([
+          apiFetch('/api/featured-materials'),
+          apiFetch(`/api/communities/${id}/join-requests`),
+        ]);
         setFeaturedLibrary(library);
         setSelectedFeatured(library[0]?.id || '');
+        setJoinRequests(requests);
       }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function respondToJoinRequest(userId, status) {
+    try {
+      await apiFetch(`/api/communities/${id}/join-requests/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+      setJoinRequests((prev) => prev.filter((r) => r.user_id !== userId));
+      if (status === 'accepted') {
+        const m = await apiFetch(`/api/communities/${id}/members`);
+        setMembers(m);
+      }
+    } catch (err) {
+      setError(err.message);
     }
   }
 
@@ -126,6 +154,21 @@ export default function CommunityDetail({ profile }) {
   if (loading) return <div style={styles.page}><p style={styles.dim}>Gathering the community…</p></div>;
   if (error) return <div style={styles.page}><p style={styles.errorText}>{error}</p></div>;
 
+  if (community && community.myStatus !== 'accepted') {
+    return (
+      <div style={styles.page}>
+        <PageHeader title={community.name} profile={profile} />
+        <Link to="/communities" style={styles.back}>← Back to My Community</Link>
+        <div style={styles.pendingCard}>
+          <p style={styles.pendingTitle}>Your request is awaiting approval</p>
+          <p style={styles.dim}>
+            The mentor of {community.name} needs to accept your request before you can see what's shared here.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.page}>
       <PageHeader title={community.name} profile={profile} />
@@ -136,6 +179,25 @@ export default function CommunityDetail({ profile }) {
       <Link to={`/communities/${id}/call`} style={styles.callButton}>📹 Join video/audio call</Link>
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
+
+      {community.myRole === 'mentor' && joinRequests.length > 0 && (
+        <>
+          <h3 style={styles.sectionTitle}>Join requests ({joinRequests.length})</h3>
+          {joinRequests.map((r) => (
+            <div key={r.user_id} style={styles.joinRequestCard}>
+              <span style={styles.joinRequestName}>{r.profiles?.display_name || 'Someone'}</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => respondToJoinRequest(r.user_id, 'accepted')} style={styles.acceptButton}>
+                  Accept
+                </button>
+                <button onClick={() => respondToJoinRequest(r.user_id, 'declined')} style={styles.declineButton}>
+                  Decline
+                </button>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
 
       <h3 style={styles.sectionTitle}>Members ({members.length})</h3>
       <div style={styles.memberRow}>
@@ -256,6 +318,26 @@ const styles = {
   title: { fontFamily: 'var(--gd-font-display)', fontWeight: 500, fontSize: 30, margin: 0 },
   desc: { fontSize: 14, color: 'var(--gd-text-dim)', lineHeight: 1.6, marginTop: 10 },
   mentorLine: { fontSize: 12, color: 'var(--gd-violet)', fontFamily: 'var(--gd-font-mono)', marginTop: 8 },
+  pendingCard: {
+    background: 'var(--gd-surface)', border: '1px solid var(--gd-line)', borderRadius: 'var(--gd-radius)',
+    padding: 24, marginTop: 24,
+  },
+  pendingTitle: {
+    fontFamily: 'var(--gd-font-display)', fontWeight: 500, fontSize: 18, color: 'var(--gd-text)', margin: '0 0 10px',
+  },
+  joinRequestCard: {
+    background: 'var(--gd-surface)', border: '1px solid var(--gd-gold-dim)', borderRadius: 'var(--gd-radius)',
+    padding: 14, marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
+  },
+  joinRequestName: { fontSize: 14, fontWeight: 500, color: 'var(--gd-text)' },
+  acceptButton: {
+    background: 'var(--gd-gold)', border: 'none', borderRadius: 8, padding: '8px 16px',
+    color: 'var(--gd-on-accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+  },
+  declineButton: {
+    background: 'transparent', border: '1px solid var(--gd-line)', borderRadius: 8, padding: '8px 16px',
+    color: 'var(--gd-text-dim)', fontSize: 13, cursor: 'pointer',
+  },
   callButton: {
     display: 'inline-block', marginTop: 16, background: 'var(--gd-gold)', border: 'none',
     borderRadius: 8, padding: '10px 20px', color: 'var(--gd-on-accent)', fontWeight: 600,

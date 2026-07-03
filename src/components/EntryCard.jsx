@@ -3,10 +3,11 @@ import { apiFetch } from '../api';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
 
-export default function EntryCard({ entry, communities = [], hasMentor = false, onUpdate, onDelete }) {
+export default function EntryCard({ entry, communities = [], hasMentor = false, peers = [], onUpdate, onDelete }) {
   const [editing, setEditing] = useState(false);
   const [visibility, setVisibility] = useState(entry.visibility);
   const [communityId, setCommunityId] = useState(entry.shared_community_id || communities[0]?.id || '');
+  const [peerId, setPeerId] = useState(entry.shared_peer_id || peers[0]?.id || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -20,6 +21,7 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
         body: JSON.stringify({
           visibility,
           shared_community_id: visibility === 'community' ? communityId : null,
+          shared_peer_id: visibility === 'peer' ? peerId : null,
         }),
       });
       onUpdate?.(updated);
@@ -32,6 +34,7 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
   function cancelEdit() {
     setVisibility(entry.visibility);
     setCommunityId(entry.shared_community_id || communities[0]?.id || '');
+    setPeerId(entry.shared_peer_id || peers[0]?.id || '');
     setEditing(false);
   }
 
@@ -46,7 +49,13 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
   }
 
   const visibilityLabel =
-    entry.visibility === 'private' ? 'Private' : entry.visibility === 'mentor' ? 'Shared with mentor' : 'Shared with community';
+    entry.visibility === 'private'
+      ? 'Private'
+      : entry.visibility === 'mentor'
+        ? 'Shared with mentor'
+        : entry.visibility === 'peer'
+          ? 'Shared with a fellow aspirant'
+          : 'Shared with community';
 
   return (
     <div style={styles.card}>
@@ -75,12 +84,20 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
           <select value={visibility} onChange={(e) => setVisibility(e.target.value)} style={styles.select}>
             <option value="private">Private</option>
             <option value="mentor" disabled={!hasMentor}>Share with mentor</option>
+            <option value="peer" disabled={peers.length === 0}>Share with a fellow aspirant</option>
             <option value="community" disabled={communities.length === 0}>Share with a community</option>
           </select>
           {visibility === 'community' && (
             <select value={communityId} onChange={(e) => setCommunityId(e.target.value)} style={styles.select}>
               {communities.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          )}
+          {visibility === 'peer' && (
+            <select value={peerId} onChange={(e) => setPeerId(e.target.value)} style={styles.select}>
+              {peers.map((p) => (
+                <option key={p.id} value={p.id}>{p.display_name}</option>
               ))}
             </select>
           )}

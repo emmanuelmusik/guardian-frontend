@@ -16,6 +16,7 @@ export default function Journal({ session, profile }) {
   const [entries, setEntries] = useState([]);
   const [communities, setCommunities] = useState([]);
   const [hasMentor, setHasMentor] = useState(false);
+  const [peers, setPeers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
@@ -24,11 +25,20 @@ export default function Journal({ session, profile }) {
   useEffect(() => {
     loadEntries();
     apiFetch('/api/communities')
-      .then((data) => setCommunities(data.map((m) => m.communities)))
+      .then((data) => setCommunities(data.filter((m) => m.status === 'accepted').map((m) => m.communities)))
       .catch(() => setCommunities([]));
     apiFetch('/api/connections')
       .then((data) => setHasMentor(data.some((c) => c.status === 'accepted')))
       .catch(() => setHasMentor(false));
+    apiFetch('/api/peer-connections/aspirants')
+      .then((data) =>
+        setPeers(
+          data
+            .filter((p) => p.connection?.status === 'accepted')
+            .map((p) => ({ id: p.id, display_name: p.display_name }))
+        )
+      )
+      .catch(() => setPeers([]));
   }, []);
 
   async function loadEntries() {
@@ -87,7 +97,7 @@ export default function Journal({ session, profile }) {
 
       <hr className="gd-horizon" style={{ marginBottom: 32 }} />
 
-      <NewEntryForm onCreate={handleCreate} communities={communities} hasMentor={hasMentor} />
+      <NewEntryForm onCreate={handleCreate} communities={communities} hasMentor={hasMentor} peers={peers} />
 
       <input
         placeholder="Search your entries…"
@@ -126,6 +136,7 @@ export default function Journal({ session, profile }) {
           entry={entry}
           communities={communities}
           hasMentor={hasMentor}
+          peers={peers}
           onUpdate={handleUpdateEntry}
           onDelete={handleDeleteEntry}
         />

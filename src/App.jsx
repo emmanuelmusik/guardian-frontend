@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import { apiFetch } from './api';
+import { NotificationsProvider } from './context/NotificationsContext.jsx';
 import Login from './pages/Login.jsx';
 import Onboarding from './pages/Onboarding.jsx';
 import Journal from './pages/Journal.jsx';
@@ -14,6 +15,8 @@ import AdminMaterials from './pages/AdminMaterials.jsx';
 import Bible from './pages/Bible.jsx';
 import Materials from './pages/Materials.jsx';
 import CommunityCall from './pages/CommunityCall.jsx';
+import PeerInbox from './pages/PeerInbox.jsx';
+import FindPeople from './pages/FindPeople.jsx';
 
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = loading, null = signed out
@@ -40,8 +43,9 @@ export default function App() {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
+    <NotificationsProvider enabled={!!session}>
+      <BrowserRouter>
+        <Routes>
         <Route path="/login" element={session ? <Navigate to="/" /> : <Login />} />
         <Route
           path="/onboarding"
@@ -175,8 +179,33 @@ export default function App() {
             )
           }
         />
+        <Route
+          path="/peer-inbox"
+          element={
+            !session ? (
+              <Navigate to="/login" />
+            ) : !profile?.onboarded ? (
+              <Navigate to="/onboarding" />
+            ) : (
+              <PeerInbox profile={profile} />
+            )
+          }
+        />
+        <Route
+          path="/find-people"
+          element={
+            !session ? (
+              <Navigate to="/login" />
+            ) : !profile?.onboarded ? (
+              <Navigate to="/onboarding" />
+            ) : (
+              <FindPeople profile={profile} />
+            )
+          }
+        />
       </Routes>
-    </BrowserRouter>
+      </BrowserRouter>
+    </NotificationsProvider>
   );
 }
 

@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, Settings as SettingsIcon, Users, Compass, BookOpen, Library, Shield, LogOut } from 'lucide-react';
+import { Menu, Settings as SettingsIcon, Users, Compass, BookOpen, Library, Shield, LogOut, Search } from 'lucide-react';
 
 const ITEMS = [
   { to: '/settings', label: 'Settings', Icon: SettingsIcon },
   { to: '/communities', label: 'My Community', Icon: Users },
   { to: '/mentorship', label: 'Fellowship', Icon: Compass },
+  { to: '/find-people', label: 'Find People', Icon: Search },
   { to: '/bible', label: 'Bible', Icon: BookOpen },
   { to: '/materials', label: 'Materials', Icon: Library },
 ];

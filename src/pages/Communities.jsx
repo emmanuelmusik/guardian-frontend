@@ -63,6 +63,8 @@ export default function Communities({ profile }) {
 
   const myCommunityIds = new Set(mine.map((m) => m.communities.id));
   const joinable = discover.filter((c) => !myCommunityIds.has(c.id));
+  const joinedCommunities = mine.filter((m) => m.status === 'accepted');
+  const pendingRequests = mine.filter((m) => m.status === 'pending');
 
   return (
     <div style={styles.page}>
@@ -96,10 +98,10 @@ export default function Communities({ profile }) {
 
       <h3 style={styles.sectionTitle}>Your communities</h3>
       {loading && <p style={styles.dim}>Gathering…</p>}
-      {!loading && mine.length === 0 && (
+      {!loading && joinedCommunities.length === 0 && (
         <p style={styles.dim}>You haven't joined a community yet.</p>
       )}
-      {mine.map(({ role, communities: c }) => (
+      {joinedCommunities.map(({ role, communities: c }) => (
         <Link key={c.id} to={`/communities/${c.id}`} style={{ ...styles.listCard, textDecoration: 'none' }}>
           <div>
             <h4 style={styles.listCardTitle}>{c.name}</h4>
@@ -108,6 +110,21 @@ export default function Communities({ profile }) {
           <span style={styles.roleTag}>{role}</span>
         </Link>
       ))}
+
+      {pendingRequests.length > 0 && (
+        <>
+          <h3 style={styles.sectionTitle}>Awaiting approval</h3>
+          {pendingRequests.map(({ communities: c }) => (
+            <div key={c.id} style={styles.listCard}>
+              <div>
+                <h4 style={styles.listCardTitle}>{c.name}</h4>
+                {c.description && <p style={styles.listCardDesc}>{c.description}</p>}
+              </div>
+              <span style={styles.statusTagDim}>Requested</span>
+            </div>
+          ))}
+        </>
+      )}
 
       <h3 style={styles.sectionTitle}>Discover</h3>
       {!loading && joinable.length === 0 && (
@@ -121,7 +138,7 @@ export default function Communities({ profile }) {
             <p style={styles.listCardMentor}>Led by {c.profiles?.display_name || 'a mentor'}</p>
           </div>
           <button onClick={() => joinCommunity(c.id)} style={styles.joinButton}>
-            Join
+            Request to join
           </button>
         </div>
       ))}
@@ -204,6 +221,13 @@ const styles = {
     fontFamily: 'var(--gd-font-mono)',
     fontSize: 11,
     color: 'var(--gd-gold)',
+    textTransform: 'uppercase',
+    whiteSpace: 'nowrap',
+  },
+  statusTagDim: {
+    fontFamily: 'var(--gd-font-mono)',
+    fontSize: 11,
+    color: 'var(--gd-text-dim)',
     textTransform: 'uppercase',
     whiteSpace: 'nowrap',
   },

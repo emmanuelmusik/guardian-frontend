@@ -7,12 +7,13 @@ const TYPES = [
   { value: 'note', label: 'Note' },
 ];
 
-export default function NewEntryForm({ onCreate, communities = [], hasMentor = false }) {
+export default function NewEntryForm({ onCreate, communities = [], hasMentor = false, peers = [] }) {
   const [type, setType] = useState('note');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState('private');
   const [communityId, setCommunityId] = useState(communities[0]?.id || '');
+  const [peerId, setPeerId] = useState(peers[0]?.id || '');
   const [listening, setListening] = useState(false);
   const [saving, setSaving] = useState(false);
   const recognitionRef = useRef(null);
@@ -59,6 +60,7 @@ export default function NewEntryForm({ onCreate, communities = [], hasMentor = f
         content,
         visibility,
         shared_community_id: visibility === 'community' ? communityId : null,
+        shared_peer_id: visibility === 'peer' ? peerId : null,
       });
       setTitle('');
       setContent('');
@@ -97,6 +99,7 @@ export default function NewEntryForm({ onCreate, communities = [], hasMentor = f
         <select value={visibility} onChange={(e) => setVisibility(e.target.value)} style={styles.select}>
           <option value="private">Private</option>
           <option value="mentor" disabled={!hasMentor}>Share with mentor</option>
+          <option value="peer" disabled={peers.length === 0}>Share with a fellow aspirant</option>
           <option value="community" disabled={communities.length === 0}>
             Share with a community
           </option>
@@ -105,6 +108,13 @@ export default function NewEntryForm({ onCreate, communities = [], hasMentor = f
           <select value={communityId} onChange={(e) => setCommunityId(e.target.value)} style={styles.select}>
             {communities.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        )}
+        {visibility === 'peer' && (
+          <select value={peerId} onChange={(e) => setPeerId(e.target.value)} style={styles.select}>
+            {peers.map((p) => (
+              <option key={p.id} value={p.id}>{p.display_name}</option>
             ))}
           </select>
         )}
