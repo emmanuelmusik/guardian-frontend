@@ -5,6 +5,10 @@ const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' 
 
 export default function EntryCard({ entry, communities = [], hasMentor = false, peers = [], onUpdate, onDelete }) {
   const [editing, setEditing] = useState(false);
+  const [editingText, setEditingText] = useState(false);
+  const [editTitle, setEditTitle] = useState(entry.title || '');
+  const [editContent, setEditContent] = useState(entry.content || '');
+  const [textSaving, setTextSaving] = useState(false);
   const [visibility, setVisibility] = useState(entry.visibility);
   const [communityId, setCommunityId] = useState(entry.shared_community_id || communities[0]?.id || '');
   const [peerId, setPeerId] = useState(entry.shared_peer_id || peers[0]?.id || '');
@@ -38,6 +42,26 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
     setEditing(false);
   }
 
+  async function saveText() {
+    setTextSaving(true);
+    try {
+      const updated = await apiFetch(`/api/entries/${entry.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ title: editTitle.trim() || null, content: editContent }),
+      });
+      onUpdate?.(updated);
+      setEditingText(false);
+    } finally {
+      setTextSaving(false);
+    }
+  }
+
+  function cancelTextEdit() {
+    setEditTitle(entry.title || '');
+    setEditContent(entry.content || '');
+    setEditingText(false);
+  }
+
   async function handleDelete() {
     if (!window.confirm('Delete this entry? This can\'t be undone.')) return;
     setDeleting(true);
@@ -64,13 +88,41 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
         <span style={styles.type}>{entry.type}</span>
         <span style={styles.date}>{date}</span>
       </div>
-      {entry.title && <h3 style={styles.title}>{entry.title}</h3>}
-      <p style={styles.content}>{entry.content}</p>
+      {!editingText && (
+        <>
+          {entry.title && <h3 style={styles.title}>{entry.title}</h3>}
+          <p style={styles.content}>{entry.content}</p>
+        </>
+      )}
 
-      {!editing && (
+      {editingText && (
+        <div style={styles.textEditBlock}>
+          <input
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            placeholder="Title (optional)"
+            style={styles.textEditInput}
+          />
+          <textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            rows={4}
+            style={styles.textEditArea}
+          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={saveText} disabled={textSaving || !editContent.trim()} style={styles.saveButton}>
+              {textSaving ? 'Saving…' : 'Save'}
+            </button>
+            <button onClick={cancelTextEdit} style={styles.cancelButton}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {!editing && !editingText && (
         <div style={styles.footer}>
           <span style={styles.visibility}>{visibilityLabel}</span>
           <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setEditingText(true)} style={styles.shareButton}>Edit</button>
             <button onClick={() => setEditing(true)} style={styles.shareButton}>Share…</button>
             <button onClick={handleDelete} disabled={deleting} style={styles.deleteButton}>
               {deleting ? 'Deleting…' : 'Delete'}
@@ -209,5 +261,34 @@ const styles = {
     color: 'var(--gd-text-dim)',
     fontSize: 13,
     cursor: 'pointer',
+  },
+  textEditBlock: {
+    marginBottom: 10,
+  },
+  textEditInput: {
+    width: '100%',
+    boxSizing: 'border-box',
+    background: 'var(--gd-void)',
+    color: 'var(--gd-text)',
+    border: '1px solid var(--gd-line)',
+    borderRadius: 8,
+    padding: '8px 10px',
+    fontFamily: 'var(--gd-font-body)',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  textEditArea: {
+    width: '100%',
+    boxSizing: 'border-box',
+    background: 'var(--gd-void)',
+    color: 'var(--gd-text)',
+    border: '1px solid var(--gd-line)',
+    borderRadius: 8,
+    padding: '8px 10px',
+    fontFamily: 'var(--gd-font-body)',
+    fontSize: 14,
+    lineHeight: 1.5,
+    marginBottom: 8,
+    resize: 'vertical',
   },
 };

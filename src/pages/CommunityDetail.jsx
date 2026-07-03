@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { apiFetch, apiUpload } from '../api';
 import CommentThread from '../components/CommentThread.jsx';
 import Attachment from '../components/Attachment.jsx';
@@ -12,6 +12,7 @@ const MAX_ATTACHMENT_BYTES = MAX_ATTACHMENT_MB * 1024 * 1024;
 
 export default function CommunityDetail({ profile }) {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [community, setCommunity] = useState(null);
   const [members, setMembers] = useState([]);
   const [entries, setEntries] = useState([]);
@@ -27,6 +28,14 @@ export default function CommunityDetail({ profile }) {
   const [error, setError] = useState(null);
   const [chatError, setChatError] = useState(null);
   const [openThread, setOpenThread] = useState(null);
+  const [editingCommunity, setEditingCommunity] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [communitySaving, setCommunitySaving] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [deletingCommunity, setDeletingCommunity] = useState(false);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   const [joinRequests, setJoinRequests] = useState([]);
 
@@ -34,12 +43,32 @@ export default function CommunityDetail({ profile }) {
     load();
   }, [id]);
 
+  // Poll for new chat messages every 8s so the discussion feels closer
+  // to live without needing a full websocket setup
+  useEffect(() => {
+    if (!community || community.myStatus !== 'accepted') return;
+    const interval = setInterval(async () => {
+      try {
+        const fresh = await apiFetch(`/api/communities/${id}/messages`);
+        const currentIds = new Set(messagesRef.current.map((m) => m.id));
+        if (fresh.length !== messagesRef.current.length || fresh.some((m) => !currentIds.has(m.id))) {
+          setMessages(fresh);
+        }
+      } catch {
+        // Skip a failed poll, retried next interval
+      }
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [community, id]);
+
   async function load() {
     setLoading(true);
     setError(null);
     try {
       const c = await apiFetch(`/api/communities/${id}`);
       setCommunity(c);
+      setEditName(c.name);
+      setEditDescription(c.description || '');
 
       if (c.myStatus !== 'accepted') {
         setLoading(false);
@@ -86,6 +115,47 @@ export default function CommunityDetail({ profile }) {
       }
     } catch (err) {
       setError(err.message);
+    }
+  }
+
+  async function saveCommunityEdit(e) {
+    e.preventDefault();
+    setCommunitySaving(true);
+    try {
+      const updated = await apiFetch(`/api/communities/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name: editName.trim(), description: editDescription.trim() || null }),
+      });
+      setCommunity((prev) => ({ ...prev, ...updated }));
+      setEditingCommunity(false);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCommunitySaving(false);
+    }
+  }
+
+  async function leaveCommunity() {
+    if (!window.confirm(`Leave ${community.name}?`)) return;
+    setLeaving(true);
+    try {
+      await apiFetch(`/api/communities/${id}/members/${profile.id}`, { method: 'DELETE' });
+      navigate('/communities');
+    } catch (err) {
+      setError(err.message);
+      setLeaving(false);
+    }
+  }
+
+  async function deleteCommunity() {
+    if (!window.confirm(`Delete ${community.name} permanently? This can't be undone.`)) return;
+    setDeletingCommunity(true);
+    try {
+      await apiFetch(`/api/communities/${id}`, { method: 'DELETE' });
+      navigate('/communities');
+    } catch (err) {
+      setError(err.message);
+      setDeletingCommunity(false);
     }
   }
 
@@ -195,9 +265,41 @@ export default function CommunityDetail({ profile }) {
       <PageHeader title={community.name} profile={profile} />
       <Link to="/communities" style={styles.back}>← Back to My Community</Link>
 
-      {community.description && <p style={styles.desc}>{community.description}</p>}
+      {!editingCommunity && community.description && <p style={styles.desc}>{community.description}</p>}
       <p style={styles.mentorLine}>Led by {nameFor(community.profiles)}</p>
       <Link to={`/communities/${id}/call`} style={styles.callButton}>📹 Join video/audio call</Link>
+
+      {community.myRole === 'mentor' ? (
+        <div style={styles.communityActions}>
+          <button onClick={() => setEditingCommunity((v) => !v)} style={styles.textActionButton}>
+            {editingCommunity ? 'Cancel edit' : 'Edit community'}
+          </button>
+          <button onClick={deleteCommunity} disabled={deletingCommunity} style={styles.textActionButtonDanger}>
+            {deletingCommunity ? 'Deleting…' : 'Delete community'}
+          </button>
+        </div>
+      ) : (
+        <div style={styles.communityActions}>
+          <button onClick={leaveCommunity} disabled={leaving} style={styles.textActionButtonDanger}>
+            {leaving ? 'Leaving…' : 'Leave community'}
+          </button>
+        </div>
+      )}
+
+      {editingCommunity && (
+        <form onSubmit={saveCommunityEdit} style={styles.editCommunityForm}>
+          <input value={editName} onChange={(e) => setEditName(e.target.value)} style={styles.input} />
+          <textarea
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+            rows={2}
+            style={{ ...styles.input, resize: 'vertical' }}
+          />
+          <button type="submit" disabled={communitySaving || !editName.trim()} style={styles.recommendButton}>
+            {communitySaving ? 'Saving…' : 'Save changes'}
+          </button>
+        </form>
+      )}
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 
@@ -296,7 +398,7 @@ export default function CommunityDetail({ profile }) {
           >
             {openThread === entry.id ? 'Hide feedback' : 'View feedback'}
           </button>
-          {openThread === entry.id && <CommentThread entryId={entry.id} />}
+          {openThread === entry.id && <CommentThread entryId={entry.id} currentUserId={profile?.id} />}
         </div>
       ))}
 
@@ -370,6 +472,23 @@ const styles = {
     display: 'inline-block', marginTop: 16, background: 'var(--gd-gold)', border: 'none',
     borderRadius: 8, padding: '10px 20px', color: 'var(--gd-on-accent)', fontWeight: 600,
     fontSize: 14, textDecoration: 'none',
+  },
+  communityActions: { display: 'flex', gap: 16, marginTop: 14 },
+  textActionButton: {
+    background: 'transparent', border: 'none', color: 'var(--gd-violet)',
+    fontSize: 13, cursor: 'pointer', padding: 0, fontFamily: 'var(--gd-font-mono)',
+  },
+  textActionButtonDanger: {
+    background: 'transparent', border: 'none', color: 'var(--gd-error)',
+    fontSize: 13, cursor: 'pointer', padding: 0, fontFamily: 'var(--gd-font-mono)',
+  },
+  editCommunityForm: {
+    display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16,
+    background: 'var(--gd-surface)', border: '1px solid var(--gd-line)', borderRadius: 'var(--gd-radius)', padding: 16,
+  },
+  input: {
+    background: 'var(--gd-void)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)',
+    borderRadius: 8, padding: '10px 12px', fontFamily: 'var(--gd-font-body)', fontSize: 14,
   },
   sectionTitle: {
     fontFamily: 'var(--gd-font-mono)', fontSize: 12, letterSpacing: '0.08em',

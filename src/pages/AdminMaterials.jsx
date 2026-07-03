@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, apiUpload } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
 
 const TYPES = [
@@ -19,6 +19,8 @@ export default function AdminMaterials({ profile }) {
   const [url, setUrl] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     load();
@@ -38,21 +40,30 @@ export default function AdminMaterials({ profile }) {
 
   async function addMaterial(e) {
     e.preventDefault();
-    if (!title.trim() || !url.trim()) return;
+    if (!title.trim() || (!url.trim() && !file)) return;
     setSaving(true);
     try {
+      let finalUrl = url.trim();
+      if (file) {
+        setUploading(true);
+        const uploaded = await apiUpload('/api/featured-materials/upload', file);
+        finalUrl = uploaded.url;
+        setUploading(false);
+      }
       await apiFetch('/api/featured-materials', {
         method: 'POST',
-        body: JSON.stringify({ type, title: title.trim(), url: url.trim(), description: description.trim() || null }),
+        body: JSON.stringify({ type, title: title.trim(), url: finalUrl, description: description.trim() || null }),
       });
       setTitle('');
       setUrl('');
       setDescription('');
+      setFile(null);
       await load();
     } catch (err) {
       setError(err.message);
     } finally {
       setSaving(false);
+      setUploading(false);
     }
   }
 
@@ -101,11 +112,25 @@ export default function AdminMaterials({ profile }) {
           />
         </div>
         <input
-          placeholder="URL"
+          placeholder="URL (or upload a file below instead)"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          disabled={!!file}
           style={styles.input}
         />
+        <div style={styles.fileRow}>
+          <label style={styles.fileButton}>
+            {file ? file.name : 'Or choose a file to upload'}
+            <input
+              type="file"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              style={{ display: 'none' }}
+            />
+          </label>
+          {file && (
+            <button type="button" onClick={() => setFile(null)} style={styles.clearFileButton}>Clear</button>
+          )}
+        </div>
         <textarea
           placeholder="Description (optional)"
           value={description}
@@ -113,8 +138,8 @@ export default function AdminMaterials({ profile }) {
           rows={2}
           style={{ ...styles.input, resize: 'vertical' }}
         />
-        <button type="submit" disabled={saving || !title.trim() || !url.trim()} style={styles.primaryButton}>
-          {saving ? 'Adding…' : 'Add to library'}
+        <button type="submit" disabled={saving || !title.trim() || (!url.trim() && !file)} style={styles.primaryButton}>
+          {uploading ? 'Uploading…' : saving ? 'Adding…' : 'Add to library'}
         </button>
       </form>
 
@@ -148,6 +173,14 @@ const styles = {
     padding: 20, marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 10,
   },
   row: { display: 'flex', gap: 10 },
+  fileRow: { display: 'flex', gap: 10, alignItems: 'center' },
+  fileButton: {
+    flex: 1, background: 'var(--gd-void)', border: '1px dashed var(--gd-line)', borderRadius: 8,
+    padding: '10px 12px', fontSize: 13, color: 'var(--gd-text-dim)', cursor: 'pointer', textAlign: 'center',
+  },
+  clearFileButton: {
+    background: 'transparent', border: 'none', color: 'var(--gd-error)', fontSize: 12, cursor: 'pointer',
+  },
   input: {
     background: 'var(--gd-void)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)',
     borderRadius: 8, padding: '10px 12px', fontFamily: 'var(--gd-font-body)', fontSize: 14,

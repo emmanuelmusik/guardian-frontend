@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
+import { nameFor } from '../utils/formatUser';
 
 export default function Communities({ profile }) {
   const [mine, setMine] = useState([]);
@@ -135,7 +136,7 @@ export default function Communities({ profile }) {
           <div>
             <h4 style={styles.listCardTitle}>{c.name}</h4>
             {c.description && <p style={styles.listCardDesc}>{c.description}</p>}
-            <p style={styles.listCardMentor}>Led by {c.profiles?.display_name || 'a mentor'}</p>
+            <p style={styles.listCardMentor}>Led by {nameFor(c.profiles)}</p>
           </div>
           <button onClick={() => joinCommunity(c.id)} style={styles.joinButton}>
             Request to join

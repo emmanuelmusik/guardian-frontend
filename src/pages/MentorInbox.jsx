@@ -50,7 +50,7 @@ export default function MentorInbox({ profile }) {
           >
             {openThread === entry.id ? 'Hide feedback' : 'Leave feedback'}
           </button>
-          {openThread === entry.id && <CommentThread entryId={entry.id} />}
+          {openThread === entry.id && <CommentThread entryId={entry.id} currentUserId={profile?.id} />}
         </div>
       ))}
     </div>
