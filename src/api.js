@@ -26,6 +26,30 @@ export async function apiFetch(path, options = {}) {
   return response.json();
 }
 
+// Downloads a binary file response (e.g. a generated PDF), triggering
+// the browser's normal save dialog, rather than parsing it as JSON.
+export async function apiDownloadFile(path, filename) {
+  const { data } = await supabase.auth.getSession();
+  const token = data?.session?.access_token;
+
+  const response = await fetch(`${API_BASE}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || `Download failed: ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // Multipart upload to the Guardian backend (files can't go through
 // JSON, so this skips the Content-Type header and sends FormData).
 export async function apiUpload(path, file) {

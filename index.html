@@ -1,91 +1,18 @@
-:root {
-  /* Color — open-sky palette: light, airy, easy to read at a glance */
-  --gd-void: #eaf6ff;        /* page background, soft sky blue */
-  --gd-surface: #ffffff;     /* cards, panels */
-  --gd-surface-raised: #f3faff; /* hover/active surface */
-  --gd-line: #c7e3f5;        /* hairlines, borders */
-  --gd-text: #1b2a3a;        /* primary text, deep navy */
-  --gd-text-dim: #5b7387;    /* secondary text */
-  --gd-gold: #e8a33d;        /* sun accent — primary actions */
-  --gd-gold-dim: #c98826;
-  --gd-violet: #3b6ea5;      /* deeper sky blue — mentor/community tags */
-  --gd-error: #d64545;
-  --gd-on-accent: #14202c;   /* text placed on top of the gold accent */
-
-  /* Type */
-  --gd-font-display: 'Fraunces', serif;
-  --gd-font-body: 'Inter', sans-serif;
-  --gd-font-mono: 'IBM Plex Mono', monospace;
-
-  /* Spacing scale */
-  --gd-space-1: 4px;
-  --gd-space-2: 8px;
-  --gd-space-3: 16px;
-  --gd-space-4: 24px;
-  --gd-space-5: 40px;
-  --gd-space-6: 64px;
-
-  --gd-radius: 10px;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html, body, #root {
-  height: 100%;
-}
-
-body {
-  margin: 0;
-  background: var(--gd-void);
-  color: var(--gd-text);
-  font-family: var(--gd-font-body);
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Signature element: the horizon rule — a hairline that shifts from
-   pale sky-blue to warm gold, the one recurring divider across the app. */
-.gd-horizon {
-  height: 1px;
-  width: 100%;
-  background: linear-gradient(90deg, var(--gd-line) 0%, var(--gd-gold-dim) 60%, var(--gd-gold) 100%);
-  border: none;
-  opacity: 0.7;
-}
-
-.gd-loading {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--gd-text-dim);
-  font-family: var(--gd-font-mono);
-  font-size: 13px;
-  letter-spacing: 0.06em;
-}
-
-button {
-  font-family: var(--gd-font-body);
-}
-
-a {
-  color: inherit;
-}
-
-::selection {
-  background: var(--gd-gold-dim);
-  color: var(--gd-on-accent);
-}
-
-:focus-visible {
-  outline: 2px solid var(--gd-gold);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.001ms !important;
-    transition-duration: 0.001ms !important;
-  }
-}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guardian</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

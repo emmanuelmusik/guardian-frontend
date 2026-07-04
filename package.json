@@ -1,7 +1,24 @@
-import { createClient } from '@supabase/supabase-js';
-
-// Use the PUBLISHABLE key here, never the secret key — this file ships to the browser.
-export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
-);
+{
+  "name": "guardian-frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.0",
+    "lucide-react": "^0.383.0",
+    "livekit-client": "^2.6.0",
+    "@livekit/components-react": "^2.6.0",
+    "@livekit/components-styles": "^1.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.0"
+  }
+}

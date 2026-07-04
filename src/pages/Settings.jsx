@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { apiFetch, apiUpload } from '../api';
+import { apiFetch, apiUpload, apiDownloadFile } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
 
 export default function Settings({ profile, onUpdate }) {
@@ -22,6 +22,7 @@ export default function Settings({ profile, onUpdate }) {
   const [avatarError, setAvatarError] = useState(null);
 
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
@@ -114,15 +115,11 @@ export default function Settings({ profile, onUpdate }) {
 
   async function exportData() {
     setExporting(true);
+    setExportError(null);
     try {
-      const data = await apiFetch('/api/profile/export');
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'guardian-data-export.json';
-      a.click();
-      URL.revokeObjectURL(url);
+      await apiDownloadFile('/api/profile/export', 'guardian-data-export.pdf');
+    } catch (err) {
+      setExportError(err.message);
     } finally {
       setExporting(false);
     }
@@ -225,10 +222,11 @@ export default function Settings({ profile, onUpdate }) {
 
       <div style={{ ...styles.card, marginTop: 20 }}>
         <h3 style={styles.cardTitle}>Your data</h3>
-        <p style={styles.cardBody}>Download everything you've created — entries, comments, and community posts.</p>
+        <p style={styles.cardBody}>Download everything you've created — entries, comments, and community posts — as a PDF.</p>
         <button onClick={exportData} disabled={exporting} style={styles.switchButton}>
           {exporting ? 'Preparing…' : 'Export my data'}
         </button>
+        {exportError && <p style={styles.error}>{exportError}</p>}
       </div>
 
       <div style={{ ...styles.card, marginTop: 20, borderColor: 'var(--gd-error)' }}>
