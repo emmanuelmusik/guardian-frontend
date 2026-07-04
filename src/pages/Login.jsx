@@ -15,12 +15,9 @@ export default function Login() {
 
   return (
     <div style={styles.page}>
-      <div style={styles.top}>
+      <div style={styles.content}>
         <p style={styles.eyebrow}>Guardian</p>
         <h1 style={styles.title}>A record kept<br />through the watches<br />of the night.</h1>
-      </div>
-
-      <div style={styles.bottom}>
         <p style={styles.sub}>
           Dreams, visions, and quiet intuitions — held privately, or shared
           with a mentor when you're ready.
@@ -53,16 +50,16 @@ const styles = {
     minHeight: '100vh',
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'space-between',
-    backgroundImage: `linear-gradient(to bottom, rgba(10,16,26,0.15) 0%, rgba(10,16,26,0.55) 60%, rgba(8,13,20,0.94) 100%), url('/login-hero.jpg')`,
+    justifyContent: 'flex-end',
+    backgroundImage: `linear-gradient(to bottom, rgba(10,16,26,0.1) 0%, rgba(10,16,26,0.55) 45%, rgba(8,13,20,0.95) 80%), url('/login-hero.jpg')`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
   },
-  top: {
-    padding: '48px 28px 0',
-  },
-  bottom: {
-    padding: '0 28px 40px',
+  content: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 16,
+    padding: '0 28px 48px',
   },
   eyebrow: {
     fontFamily: 'var(--gd-font-mono)',
@@ -70,12 +67,12 @@ const styles = {
     letterSpacing: '0.14em',
     textTransform: 'uppercase',
     color: 'var(--gd-gold)',
-    margin: '0 0 16px',
+    margin: 0,
   },
   title: {
     fontFamily: 'var(--gd-font-display)',
     fontWeight: 500,
-    fontSize: 34,
+    fontSize: 32,
     lineHeight: 1.2,
     color: '#F3EFE6',
     margin: 0,
@@ -85,7 +82,7 @@ const styles = {
     fontSize: 15,
     lineHeight: 1.6,
     color: 'rgba(243,239,230,0.85)',
-    marginBottom: 24,
+    margin: 0,
     maxWidth: 420,
   },
   googleButton: {
@@ -104,10 +101,11 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer',
     boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+    marginTop: 8,
   },
   error: {
     color: '#E58A8A',
     fontSize: 14,
-    marginTop: 16,
+    margin: 0,
   },
 };
