@@ -127,13 +127,15 @@ const styles = {
   },
   editRow: { display: 'flex', gap: 6, marginTop: 4, alignItems: 'center' },
   editInput: {
-    flex: 1, background: 'var(--gd-void)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)',
+    flex: 1, minWidth: 0, boxSizing: 'border-box', background: 'var(--gd-void)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)',
     borderRadius: 6, padding: '6px 8px', fontSize: 13, fontFamily: 'var(--gd-font-body)',
   },
   dim: { color: 'var(--gd-text-dim)', fontSize: 13, margin: '0 0 10px' },
   form: { display: 'flex', gap: 8, marginTop: 10 },
   input: {
     flex: 1,
+    minWidth: 0,
+    boxSizing: 'border-box',
     background: 'var(--gd-void)',
     color: 'var(--gd-text)',
     border: '1px solid var(--gd-line)',

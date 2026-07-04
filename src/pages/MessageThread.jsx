@@ -115,7 +115,7 @@ const styles = {
     background: 'var(--gd-void)', paddingTop: 8,
   },
   input: {
-    flex: 1, background: 'var(--gd-surface)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)',
+    flex: 1, minWidth: 0, boxSizing: 'border-box', background: 'var(--gd-surface)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)',
     borderRadius: 20, padding: '10px 16px', fontSize: 14, fontFamily: 'var(--gd-font-body)',
   },
   send: {

@@ -155,6 +155,7 @@ const styles = {
   },
   row: {
     display: 'flex',
+    flexWrap: 'wrap',
     gap: 12,
     marginBottom: 12,
   },
@@ -169,6 +170,8 @@ const styles = {
   },
   titleInput: {
     flex: 1,
+    minWidth: 0,
+    boxSizing: 'border-box',
     background: 'var(--gd-void)',
     color: 'var(--gd-text)',
     border: '1px solid var(--gd-line)',

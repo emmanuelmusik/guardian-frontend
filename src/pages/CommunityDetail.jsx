@@ -530,7 +530,7 @@ const styles = {
   chatBody: { fontSize: 14, lineHeight: 1.5, color: 'var(--gd-text)', margin: '2px 0 0' },
   chatForm: { display: 'flex', gap: 8, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--gd-line)' },
   chatInput: {
-    flex: 1, background: 'var(--gd-void)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)',
+    flex: 1, minWidth: 0, boxSizing: 'border-box', background: 'var(--gd-void)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)',
     borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'var(--gd-font-body)',
   },
   chatSend: {

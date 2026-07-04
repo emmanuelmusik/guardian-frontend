@@ -94,6 +94,7 @@ const styles = {
     top: '110%',
     right: 0,
     width: 300,
+    maxWidth: 'calc(100vw - 32px)',
     maxHeight: 360,
     overflowY: 'auto',
     zIndex: 10,

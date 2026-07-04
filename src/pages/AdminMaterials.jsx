@@ -108,7 +108,7 @@ export default function AdminMaterials({ profile }) {
             placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            style={{ ...styles.input, flex: 1 }}
+            style={{ ...styles.input, flex: 1, minWidth: 0, boxSizing: 'border-box' }}
           />
         </div>
         <input

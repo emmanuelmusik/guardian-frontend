@@ -74,6 +74,7 @@ const styles = {
     top: '110%',
     right: 0,
     minWidth: 200,
+    maxWidth: 'calc(100vw - 32px)',
     zIndex: 10,
     background: 'var(--gd-surface)',
     border: '1px solid var(--gd-line)',

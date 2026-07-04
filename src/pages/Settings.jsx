@@ -287,7 +287,7 @@ const styles = {
   },
   usernameRow: { display: 'flex', gap: 10 },
   usernameInput: {
-    flex: 1, background: 'var(--gd-void)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)',
+    flex: 1, minWidth: 0, boxSizing: 'border-box', background: 'var(--gd-void)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)',
     borderRadius: 8, padding: '10px 12px', fontFamily: 'var(--gd-font-mono)', fontSize: 14,
   },
   switchButton: {
