@@ -47,7 +47,8 @@ export default function FindPeople({ profile }) {
           body: JSON.stringify({ recipient_id: person.id }),
         });
       }
-      setActionState((prev) => ({ ...prev, [person.id]: 'sent' }));
+      setResults((prev) => prev.map((p) => (p.id === person.id ? { ...p, connectionStatus: 'pending' } : p)));
+      setActionState((prev) => ({ ...prev, [person.id]: null }));
     } catch (err) {
       setActionState((prev) => ({ ...prev, [person.id]: err.message }));
     }
@@ -83,14 +84,15 @@ export default function FindPeople({ profile }) {
               <p style={styles.cardSub}>{person.display_name} · {person.role}</p>
               {person.bio && <p style={styles.cardDesc}>{person.bio}</p>}
             </div>
-            {state === 'sent' ? (
-              <span style={styles.sentTag}>Requested</span>
-            ) : (
+            {person.connectionStatus === 'accepted' && <span style={styles.sentTag}>Connected</span>}
+            {person.connectionStatus === 'pending' && <span style={styles.sentTag}>Requested</span>}
+            {person.connectionStatus === 'declined' && <span style={styles.sentTagDim}>Declined</span>}
+            {!person.connectionStatus && (
               <button onClick={() => connect(person)} disabled={state === 'sending'} style={styles.connectButton}>
                 {state === 'sending' ? '…' : person.role === 'mentor' ? 'Request mentor' : 'Connect'}
               </button>
             )}
-            {state && state !== 'sent' && state !== 'sending' && <p style={styles.errorText}>{state}</p>}
+            {state && state !== 'sending' && <p style={styles.errorText}>{state}</p>}
           </div>
         );
       })}
@@ -124,6 +126,10 @@ const styles = {
   },
   sentTag: {
     fontFamily: 'var(--gd-font-mono)', fontSize: 11, color: 'var(--gd-gold)',
+    textTransform: 'uppercase', whiteSpace: 'nowrap',
+  },
+  sentTagDim: {
+    fontFamily: 'var(--gd-font-mono)', fontSize: 11, color: 'var(--gd-text-dim)',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
   },
   dim: { color: 'var(--gd-text-dim)', fontSize: 14 },

@@ -106,7 +106,7 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            rows={4}
+            rows={9}
             style={styles.textEditArea}
           />
           <div style={{ display: 'flex', gap: 8 }}>

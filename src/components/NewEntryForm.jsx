@@ -100,7 +100,7 @@ export default function NewEntryForm({ onCreate, communities = [], hasMentor = f
         placeholder="What did you see, hear, or sense?"
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        rows={4}
+        rows={9}
         style={styles.textarea}
       />
 
