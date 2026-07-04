@@ -25,6 +25,7 @@ import FAQ from './pages/FAQ.jsx';
 import Profile from './pages/Profile.jsx';
 import Messages from './pages/Messages.jsx';
 import MessageThread from './pages/MessageThread.jsx';
+import SharedWithYou from './pages/SharedWithYou.jsx';
 
 function Protected({ session, profile, children }) {
   if (!session) return <Navigate to="/login" />;
@@ -63,6 +64,7 @@ function AppRoutes({ session, profile, setProfile }) {
         <Route path="/profile/:id" element={<Protected session={session} profile={profile}><Profile profile={profile} /></Protected>} />
         <Route path="/messages" element={<Protected session={session} profile={profile}><Messages profile={profile} /></Protected>} />
         <Route path="/messages/:userId" element={<Protected session={session} profile={profile}><MessageThread profile={profile} /></Protected>} />
+        <Route path="/shared-with-you" element={<Protected session={session} profile={profile}><SharedWithYou profile={profile} /></Protected>} />
       </Routes>
       <FloatingCall />
       {showBottomNav && <BottomNav profile={profile} />}

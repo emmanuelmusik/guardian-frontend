@@ -8,7 +8,7 @@ const SECTIONS = [
   },
   {
     title: 'Journal',
-    body: "Your home screen. Record dreams, visions, intuitions, or notes — type or tap \"Speak instead\" to dictate. Filter by category or search across everything you've written. Each entry has Edit (fix the text), Share… (send it to a mentor, a fellow aspirant, or a community), and Delete.",
+    body: "Your home screen. Record dreams, visions, intuitions, or notes — type or tap \"Speak instead\" to dictate. Filter by category or search across everything you've written. Each entry has Edit (fix the text), Share… (send it to a community, or search and pick any specific person you're connected with), and Delete.",
   },
   {
     title: 'Profiles',
@@ -24,7 +24,11 @@ const SECTIONS = [
   },
   {
     title: 'Mentorship',
-    body: 'As an aspirant: browse mentors and request guidance, or connect one-to-one with a fellow aspirant. As a mentor: accept or decline requests, and see what your aspirants have chosen to share with you.',
+    body: 'Browse and connect with mentors or aspirants, regardless of your own role — an aspirant can have more than one mentor, and two mentors can connect with each other too. Accept or decline requests coming your way, and see what your connections have shared with you.',
+  },
+  {
+    title: 'Shared With You',
+    body: 'Entries someone you\'re connected with chose to share directly with you, rather than with an entire community, show up here. Leave feedback the same way you would on anything shared in a community.',
   },
   {
     title: 'Find People',

@@ -61,12 +61,13 @@ const styles = {
   card: {
     maxWidth: 420,
     width: '100%',
-    background: 'rgba(255,255,255,0.72)',
-    backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
+    background: 'rgba(255,255,255,0.22)',
+    backdropFilter: 'blur(22px) saturate(1.3)',
+    WebkitBackdropFilter: 'blur(22px) saturate(1.3)',
+    border: '1px solid rgba(255,255,255,0.35)',
     borderRadius: 20,
     padding: '32px 28px',
-    boxShadow: '0 8px 32px rgba(20,32,44,0.18)',
+    boxShadow: '0 8px 32px rgba(20,32,44,0.15)',
   },
   eyebrow: {
     fontFamily: 'var(--gd-font-mono)',
@@ -84,12 +85,14 @@ const styles = {
     lineHeight: 1.15,
     color: 'var(--gd-text)',
     margin: 0,
+    textShadow: '0 1px 12px rgba(255,255,255,0.5)',
   },
   sub: {
     fontSize: 15,
     lineHeight: 1.6,
     color: 'var(--gd-text-dim)',
     marginTop: 20,
+    textShadow: '0 1px 8px rgba(255,255,255,0.4)',
   },
   divider: {
     border: 'none',

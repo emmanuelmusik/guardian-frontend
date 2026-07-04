@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import ConnectionPicker from './ConnectionPicker.jsx';
 
 const TYPES = [
   { value: 'dream', label: 'Dream' },
@@ -7,13 +8,13 @@ const TYPES = [
   { value: 'note', label: 'Note' },
 ];
 
-export default function NewEntryForm({ onCreate, communities = [], hasMentor = false, peers = [] }) {
+export default function NewEntryForm({ onCreate, communities = [], connections = [] }) {
   const [type, setType] = useState('note');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState('private');
   const [communityId, setCommunityId] = useState(communities[0]?.id || '');
-  const [peerId, setPeerId] = useState(peers[0]?.id || '');
+  const [personId, setPersonId] = useState('');
   const [listening, setListening] = useState(false);
   const [saving, setSaving] = useState(false);
   const recognitionRef = useRef(null);
@@ -59,6 +60,7 @@ export default function NewEntryForm({ onCreate, communities = [], hasMentor = f
   async function handleSubmit(e) {
     e.preventDefault();
     if (!content.trim() || submitLockRef.current) return;
+    if (visibility === 'person' && !personId) return;
     submitLockRef.current = true;
     setSaving(true);
     try {
@@ -68,12 +70,13 @@ export default function NewEntryForm({ onCreate, communities = [], hasMentor = f
         content,
         visibility,
         shared_community_id: visibility === 'community' ? communityId : null,
-        shared_peer_id: visibility === 'peer' ? peerId : null,
+        shared_with_user_id: visibility === 'person' ? personId : null,
       });
       setTitle('');
       setContent('');
       setType('note');
       setVisibility('private');
+      setPersonId('');
     } finally {
       setSaving(false);
       submitLockRef.current = false;
@@ -107,10 +110,11 @@ export default function NewEntryForm({ onCreate, communities = [], hasMentor = f
       <div style={styles.row}>
         <select value={visibility} onChange={(e) => setVisibility(e.target.value)} style={styles.select}>
           <option value="private">Private</option>
-          <option value="mentor" disabled={!hasMentor}>Share with mentor</option>
-          <option value="peer" disabled={peers.length === 0}>Share with a fellow aspirant</option>
           <option value="community" disabled={communities.length === 0}>
             Share with a community
+          </option>
+          <option value="person" disabled={connections.length === 0}>
+            Share with someone
           </option>
         </select>
         {visibility === 'community' && (
@@ -120,14 +124,13 @@ export default function NewEntryForm({ onCreate, communities = [], hasMentor = f
             ))}
           </select>
         )}
-        {visibility === 'peer' && (
-          <select value={peerId} onChange={(e) => setPeerId(e.target.value)} style={styles.select}>
-            {peers.map((p) => (
-              <option key={p.id} value={p.id}>{p.display_name}</option>
-            ))}
-          </select>
-        )}
       </div>
+
+      {visibility === 'person' && (
+        <div style={styles.row}>
+          <ConnectionPicker connections={connections} value={personId} onChange={setPersonId} />
+        </div>
+      )}
 
       <div style={styles.row}>
         <button
@@ -137,7 +140,11 @@ export default function NewEntryForm({ onCreate, communities = [], hasMentor = f
         >
           {listening ? '● Listening…' : '🎙 Speak instead'}
         </button>
-        <button type="submit" disabled={saving || !content.trim()} style={styles.submit}>
+        <button
+          type="submit"
+          disabled={saving || !content.trim() || (visibility === 'person' && !personId)}
+          style={styles.submit}
+        >
           {saving ? 'Recording…' : 'Record entry'}
         </button>
       </div>

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../api';
+import ConnectionPicker from './ConnectionPicker.jsx';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
 
-export default function EntryCard({ entry, communities = [], hasMentor = false, peers = [], onUpdate, onDelete }) {
+export default function EntryCard({ entry, communities = [], connections = [], onUpdate, onDelete }) {
   const [editing, setEditing] = useState(false);
   const [editingText, setEditingText] = useState(false);
   const [editTitle, setEditTitle] = useState(entry.title || '');
@@ -11,7 +12,7 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
   const [textSaving, setTextSaving] = useState(false);
   const [visibility, setVisibility] = useState(entry.visibility);
   const [communityId, setCommunityId] = useState(entry.shared_community_id || communities[0]?.id || '');
-  const [peerId, setPeerId] = useState(entry.shared_peer_id || peers[0]?.id || '');
+  const [personId, setPersonId] = useState(entry.shared_with_user_id || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -25,7 +26,7 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
         body: JSON.stringify({
           visibility,
           shared_community_id: visibility === 'community' ? communityId : null,
-          shared_peer_id: visibility === 'peer' ? peerId : null,
+          shared_with_user_id: visibility === 'person' ? personId : null,
         }),
       });
       onUpdate?.(updated);
@@ -38,7 +39,7 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
   function cancelEdit() {
     setVisibility(entry.visibility);
     setCommunityId(entry.shared_community_id || communities[0]?.id || '');
-    setPeerId(entry.shared_peer_id || peers[0]?.id || '');
+    setPersonId(entry.shared_with_user_id || '');
     setEditing(false);
   }
 
@@ -79,7 +80,9 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
         ? 'Shared with mentor'
         : entry.visibility === 'peer'
           ? 'Shared with a fellow aspirant'
-          : 'Shared with community';
+          : entry.visibility === 'person'
+            ? 'Shared with someone'
+            : 'Shared with community';
 
   return (
     <div style={styles.card}>
@@ -135,9 +138,8 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
         <div style={styles.editRow}>
           <select value={visibility} onChange={(e) => setVisibility(e.target.value)} style={styles.select}>
             <option value="private">Private</option>
-            <option value="mentor" disabled={!hasMentor}>Share with mentor</option>
-            <option value="peer" disabled={peers.length === 0}>Share with a fellow aspirant</option>
             <option value="community" disabled={communities.length === 0}>Share with a community</option>
+            <option value="person" disabled={connections.length === 0}>Share with someone</option>
           </select>
           {visibility === 'community' && (
             <select value={communityId} onChange={(e) => setCommunityId(e.target.value)} style={styles.select}>
@@ -146,14 +148,14 @@ export default function EntryCard({ entry, communities = [], hasMentor = false, 
               ))}
             </select>
           )}
-          {visibility === 'peer' && (
-            <select value={peerId} onChange={(e) => setPeerId(e.target.value)} style={styles.select}>
-              {peers.map((p) => (
-                <option key={p.id} value={p.id}>{p.display_name}</option>
-              ))}
-            </select>
+          {visibility === 'person' && (
+            <ConnectionPicker connections={connections} value={personId} onChange={setPersonId} />
           )}
-          <button onClick={saveSharing} disabled={saving} style={styles.saveButton}>
+          <button
+            onClick={saveSharing}
+            disabled={saving || (visibility === 'person' && !personId)}
+            style={styles.saveButton}
+          >
             {saving ? 'Saving…' : 'Save'}
           </button>
           <button onClick={cancelEdit} style={styles.cancelButton}>Cancel</button>
