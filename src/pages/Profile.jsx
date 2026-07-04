@@ -80,7 +80,7 @@ export default function Profile({ profile: myProfile }) {
             {pending && <span style={styles.pendingTag}>Request pending</span>}
             {!connected && !pending && (
               <button onClick={connect} disabled={connecting} style={styles.primaryButton}>
-                {connecting ? '…' : person.role === 'mentor' ? 'Request mentor' : 'Connect'}
+                {connecting ? '…' : 'Connect'}
               </button>
             )}
           </div>

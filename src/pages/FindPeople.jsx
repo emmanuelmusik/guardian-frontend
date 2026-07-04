@@ -89,7 +89,7 @@ export default function FindPeople({ profile }) {
             {person.connectionStatus === 'declined' && <span style={styles.sentTagDim}>Declined</span>}
             {!person.connectionStatus && (
               <button onClick={() => connect(person)} disabled={state === 'sending'} style={styles.connectButton}>
-                {state === 'sending' ? '…' : person.role === 'mentor' ? 'Request mentor' : 'Connect'}
+                {state === 'sending' ? '…' : 'Connect'}
               </button>
             )}
             {state && state !== 'sending' && <p style={styles.errorText}>{state}</p>}

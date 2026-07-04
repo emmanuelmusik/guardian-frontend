@@ -6,9 +6,9 @@ import UserLink from '../components/UserLink.jsx';
 
 export default function Mentorship({ profile }) {
   const [mentors, setMentors] = useState([]);
-  const [peers, setPeers] = useState([]);
-  const [incomingPeerRequests, setIncomingPeerRequests] = useState([]);
-  const [requests, setRequests] = useState([]);
+  const [aspirants, setAspirants] = useState([]);
+  const [mentorConnections, setMentorConnections] = useState([]);
+  const [peerConnections, setPeerConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -20,20 +20,16 @@ export default function Mentorship({ profile }) {
     setLoading(true);
     setError(null);
     try {
-      if (profile.role === 'aspirant') {
-        const [mentorList, peerList, myPeerConnections] = await Promise.all([
-          apiFetch('/api/connections/mentors'),
-          apiFetch('/api/peer-connections/aspirants'),
-          apiFetch('/api/peer-connections'),
-        ]);
-        setMentors(mentorList);
-        setPeers(peerList);
-        setIncomingPeerRequests(
-          myPeerConnections.filter((c) => c.recipient_id === profile.id && c.status === 'pending')
-        );
-      } else {
-        setRequests(await apiFetch('/api/connections'));
-      }
+      const [mentorList, aspirantList, myMentorConns, myPeerConns] = await Promise.all([
+        apiFetch('/api/connections/mentors'),
+        apiFetch('/api/peer-connections/aspirants'),
+        apiFetch('/api/connections'),
+        apiFetch('/api/peer-connections'),
+      ]);
+      setMentors(mentorList);
+      setAspirants(aspirantList);
+      setMentorConnections(myMentorConns);
+      setPeerConnections(myPeerConns);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -41,56 +37,48 @@ export default function Mentorship({ profile }) {
     }
   }
 
-  async function requestMentor(mentorId) {
+  async function connectMentor(mentorId) {
     try {
-      await apiFetch('/api/connections', {
-        method: 'POST',
-        body: JSON.stringify({ mentor_id: mentorId }),
-      });
+      await apiFetch('/api/connections', { method: 'POST', body: JSON.stringify({ mentor_id: mentorId }) });
       await load();
     } catch (err) {
       setError(err.message);
     }
   }
 
-  async function requestPeer(peerId) {
+  async function connectAspirant(aspirantId) {
     try {
-      await apiFetch('/api/peer-connections', {
-        method: 'POST',
-        body: JSON.stringify({ recipient_id: peerId }),
-      });
+      await apiFetch('/api/peer-connections', { method: 'POST', body: JSON.stringify({ recipient_id: aspirantId }) });
       await load();
     } catch (err) {
       setError(err.message);
     }
   }
 
-  async function respondPeer(connectionId, status) {
+  async function respondMentorConnection(id, status) {
     try {
-      await apiFetch(`/api/peer-connections/${connectionId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-      });
+      await apiFetch(`/api/connections/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
       await load();
     } catch (err) {
       setError(err.message);
     }
   }
 
-  async function respond(id, status) {
+  async function respondPeerConnection(id, status) {
     try {
-      await apiFetch(`/api/connections/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-      });
+      await apiFetch(`/api/peer-connections/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
       await load();
     } catch (err) {
       setError(err.message);
     }
   }
 
-  const pending = requests.filter((r) => r.status === 'pending');
-  const accepted = requests.filter((r) => r.status === 'accepted');
+  // Incoming requests: someone requested me as their mentor, or a peer
+  // requested to connect with me — regardless of my own role.
+  const incomingMentorRequests = mentorConnections.filter((c) => c.mentor_id === profile.id && c.status === 'pending');
+  const incomingPeerRequests = peerConnections.filter((c) => c.recipient_id === profile.id && c.status === 'pending');
+  const hasAcceptedMentorConnection = mentorConnections.some((c) => c.status === 'accepted');
+  const hasAcceptedPeerConnection = peerConnections.some((c) => c.status === 'accepted');
 
   return (
     <div style={styles.page}>
@@ -101,23 +89,32 @@ export default function Mentorship({ profile }) {
       {error && <p style={styles.errorText}>{error}</p>}
       {loading && <p style={styles.dim}>Gathering…</p>}
 
-      {!loading && profile.role === 'aspirant' && (
+      {!loading && (incomingMentorRequests.length > 0 || incomingPeerRequests.length > 0) && (
         <>
-          {incomingPeerRequests.length > 0 && (
-            <>
-              <h3 style={styles.sectionTitle}>Requests to connect</h3>
-              {incomingPeerRequests.map((r) => (
-                <div key={r.id} style={styles.card}>
-                  <h4 style={styles.cardTitle}><UserLink profile={r.requester} /></h4>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => respondPeer(r.id, 'accepted')} style={styles.actionButton}>Accept</button>
-                    <button onClick={() => respondPeer(r.id, 'declined')} style={styles.declineButton}>Decline</button>
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
+          <h3 style={styles.sectionTitle}>Requests to connect</h3>
+          {incomingMentorRequests.map((r) => (
+            <div key={`m-${r.id}`} style={styles.card}>
+              <h4 style={styles.cardTitle}><UserLink profile={r.aspirant} /></h4>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => respondMentorConnection(r.id, 'accepted')} style={styles.actionButton}>Accept</button>
+                <button onClick={() => respondMentorConnection(r.id, 'declined')} style={styles.declineButton}>Decline</button>
+              </div>
+            </div>
+          ))}
+          {incomingPeerRequests.map((r) => (
+            <div key={`p-${r.id}`} style={styles.card}>
+              <h4 style={styles.cardTitle}><UserLink profile={r.requester} /></h4>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => respondPeerConnection(r.id, 'accepted')} style={styles.actionButton}>Accept</button>
+                <button onClick={() => respondPeerConnection(r.id, 'declined')} style={styles.declineButton}>Decline</button>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
 
+      {!loading && (
+        <>
           <h3 style={styles.sectionTitle}>Find a mentor</h3>
           {mentors.length === 0 && <p style={styles.dim}>No mentors available yet.</p>}
           {mentors.map((m) => (
@@ -130,14 +127,14 @@ export default function Mentorship({ profile }) {
               {m.connectionStatus === 'pending' && <span style={styles.statusTagDim}>Requested</span>}
               {m.connectionStatus === 'declined' && <span style={styles.statusTagDim}>Declined</span>}
               {!m.connectionStatus && (
-                <button onClick={() => requestMentor(m.id)} style={styles.actionButton}>Request</button>
+                <button onClick={() => connectMentor(m.id)} style={styles.actionButton}>Connect</button>
               )}
             </div>
           ))}
 
-          <h3 style={styles.sectionTitle}>Connect with a fellow aspirant</h3>
-          {peers.length === 0 && <p style={styles.dim}>No fellow aspirants to connect with yet.</p>}
-          {peers.map((p) => (
+          <h3 style={styles.sectionTitle}>Connect with an aspirant</h3>
+          {aspirants.length === 0 && <p style={styles.dim}>No aspirants to connect with yet.</p>}
+          {aspirants.map((p) => (
             <div key={p.id} style={styles.card}>
               <div>
                 <h4 style={styles.cardTitle}><UserLink profile={p} /></h4>
@@ -152,42 +149,20 @@ export default function Mentorship({ profile }) {
               )}
               {p.connection?.status === 'declined' && <span style={styles.statusTagDim}>Declined</span>}
               {!p.connection && (
-                <button onClick={() => requestPeer(p.id)} style={styles.actionButton}>Connect</button>
+                <button onClick={() => connectAspirant(p.id)} style={styles.actionButton}>Connect</button>
               )}
             </div>
           ))}
 
-          {peers.some((p) => p.connection?.status === 'accepted') && (
-            <Link to="/peer-inbox" style={styles.inboxLink}>See what fellow aspirants have shared with you →</Link>
-          )}
-        </>
-      )}
-
-      {!loading && profile.role === 'mentor' && (
-        <>
-          <h3 style={styles.sectionTitle}>Pending requests</h3>
-          {pending.length === 0 && <p style={styles.dim}>No pending requests.</p>}
-          {pending.map((r) => (
-            <div key={r.id} style={styles.card}>
-              <p style={styles.cardTitle}><UserLink profile={r.aspirant} /></p>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => respond(r.id, 'accepted')} style={styles.actionButton}>Accept</button>
-                <button onClick={() => respond(r.id, 'declined')} style={styles.declineButton}>Decline</button>
-              </div>
+          {(hasAcceptedMentorConnection || hasAcceptedPeerConnection) && (
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 8 }}>
+              {hasAcceptedMentorConnection && (
+                <Link to="/mentor-inbox" style={styles.inboxLink}>What your connections have shared with you →</Link>
+              )}
+              {hasAcceptedPeerConnection && (
+                <Link to="/peer-inbox" style={styles.inboxLink}>What fellow aspirants have shared with you →</Link>
+              )}
             </div>
-          ))}
-
-          <h3 style={styles.sectionTitle}>Your aspirants</h3>
-          {accepted.length === 0 && <p style={styles.dim}>No connections yet.</p>}
-          {accepted.map((r) => (
-            <div key={r.id} style={styles.card}>
-              <p style={styles.cardTitle}><UserLink profile={r.aspirant} /></p>
-              <span style={styles.statusTag}>Connected</span>
-            </div>
-          ))}
-
-          {accepted.length > 0 && (
-            <Link to="/mentor-inbox" style={styles.inboxLink}>View what's been shared with you →</Link>
           )}
         </>
       )}
@@ -197,12 +172,6 @@ export default function Mentorship({ profile }) {
 
 const styles = {
   page: { maxWidth: 640, margin: '0 auto', padding: '48px 24px 80px' },
-  back: { display: 'inline-block', color: 'var(--gd-text-dim)', fontSize: 13, textDecoration: 'none', marginBottom: 24 },
-  eyebrow: {
-    fontFamily: 'var(--gd-font-mono)', fontSize: 12, letterSpacing: '0.12em',
-    textTransform: 'uppercase', color: 'var(--gd-gold)', margin: '0 0 6px',
-  },
-  title: { fontFamily: 'var(--gd-font-display)', fontWeight: 500, fontSize: 30, margin: 0 },
   sectionTitle: {
     fontFamily: 'var(--gd-font-mono)', fontSize: 12, letterSpacing: '0.08em',
     textTransform: 'uppercase', color: 'var(--gd-text-dim)', margin: '32px 0 14px',
@@ -229,7 +198,7 @@ const styles = {
     fontFamily: 'var(--gd-font-mono)', fontSize: 11, color: 'var(--gd-text-dim)',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
   },
-  inboxLink: { display: 'inline-block', marginTop: 12, color: 'var(--gd-violet)', fontSize: 14, textDecoration: 'none' },
+  inboxLink: { display: 'inline-block', color: 'var(--gd-violet)', fontSize: 14, textDecoration: 'none' },
   dim: { color: 'var(--gd-text-dim)', fontSize: 14 },
   errorText: { color: 'var(--gd-error)', fontSize: 14, marginBottom: 16 },
 };
