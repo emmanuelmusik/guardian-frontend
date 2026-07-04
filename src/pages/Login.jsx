@@ -15,13 +15,15 @@ export default function Login() {
 
   return (
     <div style={styles.page}>
-      <div style={styles.content}>
+      <div style={styles.card}>
         <p style={styles.eyebrow}>Guardian</p>
         <h1 style={styles.title}>A record kept<br />through the watches<br />of the night.</h1>
         <p style={styles.sub}>
           Dreams, visions, and quiet intuitions — held privately, or shared
           with a mentor when you're ready.
         </p>
+
+        <hr style={styles.divider} />
 
         <button style={styles.googleButton} onClick={signInWithGoogle}>
           <GoogleIcon />
@@ -49,43 +51,45 @@ const styles = {
   page: {
     minHeight: '100vh',
     display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'flex-start',
-    backgroundImage: `linear-gradient(to bottom, rgba(8,13,20,0.8) 0%, rgba(10,16,26,0.4) 40%, rgba(10,16,26,0.05) 65%, transparent 100%), url('/login-hero.jpg')`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    backgroundImage: `radial-gradient(ellipse 90% 75% at 50% 45%, rgba(8,13,20,0.78), rgba(8,13,20,0.55) 55%, rgba(8,13,20,0.3) 100%), url('/login-hero.jpg')`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
   },
-  content: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    textAlign: 'left',
-    gap: 16,
-    padding: '48px 28px 0',
+  card: {
+    maxWidth: 420,
+    width: '100%',
   },
   eyebrow: {
     fontFamily: 'var(--gd-font-mono)',
     fontSize: 12,
-    letterSpacing: '0.14em',
+    letterSpacing: '0.12em',
     textTransform: 'uppercase',
     color: 'var(--gd-gold)',
-    margin: 0,
+    margin: '0 0 16px',
   },
   title: {
     fontFamily: 'var(--gd-font-display)',
     fontWeight: 500,
-    fontSize: 32,
-    lineHeight: 1.2,
+    fontSize: 38,
+    lineHeight: 1.15,
     color: '#F3EFE6',
     margin: 0,
-    textShadow: '0 2px 16px rgba(0,0,0,0.4)',
+    textShadow: '0 2px 20px rgba(0,0,0,0.45)',
   },
   sub: {
     fontSize: 15,
     lineHeight: 1.6,
     color: 'rgba(243,239,230,0.85)',
-    margin: 0,
-    maxWidth: 420,
+    marginTop: 20,
+  },
+  divider: {
+    border: 'none',
+    height: 1,
+    background: 'linear-gradient(90deg, rgba(243,239,230,0.15) 0%, var(--gd-gold-dim) 60%, var(--gd-gold) 100%)',
+    margin: '32px 0',
   },
   googleButton: {
     display: 'flex',
@@ -93,21 +97,19 @@ const styles = {
     justifyContent: 'center',
     gap: 10,
     width: '100%',
-    maxWidth: 420,
-    padding: '14px 20px',
+    padding: '13px 20px',
     borderRadius: 12,
     border: 'none',
     background: '#F3EFE6',
     color: '#1B2A3A',
     fontSize: 15,
-    fontWeight: 600,
+    fontWeight: 500,
     cursor: 'pointer',
     boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
-    marginTop: 8,
   },
   error: {
     color: '#E58A8A',
     fontSize: 14,
-    margin: 0,
+    marginTop: 16,
   },
 };
