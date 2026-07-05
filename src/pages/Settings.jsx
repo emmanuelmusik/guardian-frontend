@@ -43,7 +43,7 @@ export default function Settings({ profile, onUpdate }) {
         const data = await apiFetch(`/api/users/check-username?username=${encodeURIComponent(username)}`);
         setUsernameStatus(data.available ? 'available' : 'taken');
       } catch {
-        setUsernameStatus(null);
+        setUsernameStatus('unknown');
       }
     }, 400);
     return () => clearTimeout(checkTimer.current);

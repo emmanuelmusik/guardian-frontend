@@ -24,12 +24,14 @@ export default function Onboarding({ profile, onComplete }) {
   const [error, setError] = useState(null);
   const checkTimer = useRef(null);
 
+  const usernameIsValidFormat = /^[a-z0-9_]{3,20}$/.test(username);
+
   useEffect(() => {
     if (!username) {
       setUsernameStatus(null);
       return;
     }
-    if (!/^[a-z0-9_]{3,20}$/.test(username)) {
+    if (!usernameIsValidFormat) {
       setUsernameStatus('invalid');
       return;
     }
@@ -40,11 +42,15 @@ export default function Onboarding({ profile, onComplete }) {
         const data = await apiFetch(`/api/users/check-username?username=${encodeURIComponent(username)}`);
         setUsernameStatus(data.available ? 'available' : 'taken');
       } catch {
-        setUsernameStatus(null);
+        // The live check failed (e.g. a slow or unreachable server) —
+        // don't block the person on this. The save step below still
+        // enforces uniqueness properly and will show a clear error
+        // if the name turns out to be taken.
+        setUsernameStatus('unknown');
       }
     }, 400);
     return () => clearTimeout(checkTimer.current);
-  }, [username]);
+  }, [username]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function continueToUsername() {
     if (!selectedRole) return;
@@ -52,7 +58,7 @@ export default function Onboarding({ profile, onComplete }) {
   }
 
   async function finish() {
-    if (usernameStatus !== 'available') return;
+    if (!usernameIsValidFormat || usernameStatus === 'taken') return;
     setSaving(true);
     setError(null);
     try {
@@ -117,6 +123,7 @@ export default function Onboarding({ profile, onComplete }) {
           {usernameStatus === 'checking' && <p style={styles.hint}>Checking…</p>}
           {usernameStatus === 'available' && <p style={styles.hintGood}>Available</p>}
           {usernameStatus === 'taken' && <p style={styles.error}>Already taken</p>}
+          {usernameStatus === 'unknown' && <p style={styles.hint}>Couldn't verify availability, but you can continue — we'll check when you save.</p>}
           {usernameStatus === 'invalid' && (
             <p style={styles.error}>3-20 characters: lowercase letters, numbers, underscores</p>
           )}
@@ -124,8 +131,8 @@ export default function Onboarding({ profile, onComplete }) {
 
           <button
             onClick={finish}
-            disabled={usernameStatus !== 'available' || saving}
-            style={{ ...styles.confirm, opacity: usernameStatus === 'available' ? 1 : 0.5 }}
+            disabled={!usernameIsValidFormat || usernameStatus === 'taken' || saving}
+            style={{ ...styles.confirm, opacity: usernameIsValidFormat && usernameStatus !== 'taken' ? 1 : 0.5 }}
           >
             {saving ? 'Saving…' : 'Continue'}
           </button>
