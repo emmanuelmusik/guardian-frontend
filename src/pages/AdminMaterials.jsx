@@ -4,6 +4,7 @@ import PageHeader from '../components/PageHeader.jsx';
 
 const TYPES = [
   { value: 'pdf', label: 'PDF' },
+  { value: 'music', label: 'Music' },
   { value: 'audiobook', label: 'Audiobook' },
   { value: 'video', label: 'Video' },
   { value: 'youtube', label: 'YouTube' },

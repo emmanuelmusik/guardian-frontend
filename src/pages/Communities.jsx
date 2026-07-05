@@ -62,10 +62,23 @@ export default function Communities({ profile }) {
     }
   }
 
+  async function respondToInvitation(id, status) {
+    try {
+      await apiFetch(`/api/communities/${id}/invitation`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+      await load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   const myCommunityIds = new Set(mine.map((m) => m.communities.id));
   const joinable = discover.filter((c) => !myCommunityIds.has(c.id));
   const joinedCommunities = mine.filter((m) => m.status === 'accepted');
   const pendingRequests = mine.filter((m) => m.status === 'pending');
+  const invitations = mine.filter((m) => m.status === 'invited');
 
   return (
     <div style={styles.page}>
@@ -95,6 +108,24 @@ export default function Communities({ profile }) {
             {creating ? 'Creating…' : 'Create community'}
           </button>
         </form>
+      )}
+
+      {invitations.length > 0 && (
+        <>
+          <h3 style={styles.sectionTitle}>Invitations</h3>
+          {invitations.map(({ communities: c }) => (
+            <div key={c.id} style={styles.listCard}>
+              <div>
+                <h4 style={styles.listCardTitle}>{c.name}</h4>
+                {c.description && <p style={styles.listCardDesc}>{c.description}</p>}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => respondToInvitation(c.id, 'accepted')} style={styles.primaryButton}>Accept</button>
+                <button onClick={() => respondToInvitation(c.id, 'declined')} style={styles.declineButton}>Decline</button>
+              </div>
+            </div>
+          ))}
+        </>
       )}
 
       <h3 style={styles.sectionTitle}>Your communities</h3>
@@ -195,6 +226,16 @@ const styles = {
     fontWeight: 600,
     fontSize: 14,
     cursor: 'pointer',
+  },
+  declineButton: {
+    background: 'transparent',
+    border: '1px solid var(--gd-line)',
+    borderRadius: 8,
+    padding: '10px 20px',
+    color: 'var(--gd-text-dim)',
+    fontSize: 14,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
   },
   sectionTitle: {
     fontFamily: 'var(--gd-font-mono)',

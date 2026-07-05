@@ -39,6 +39,10 @@ export default function CommunityDetail({ profile }) {
   messagesRef.current = messages;
 
   const [joinRequests, setJoinRequests] = useState([]);
+  const [inviteQuery, setInviteQuery] = useState('');
+  const [inviteResults, setInviteResults] = useState([]);
+  const [inviteSearching, setInviteSearching] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState({});
 
   useEffect(() => {
     load();
@@ -100,6 +104,54 @@ export default function CommunityDetail({ profile }) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function respondToInvitation(status) {
+    try {
+      await apiFetch(`/api/communities/${id}/invitation`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+      if (status === 'accepted') {
+        await load();
+      } else {
+        navigate('/communities');
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  useEffect(() => {
+    if (!inviteQuery.trim()) {
+      setInviteResults([]);
+      return;
+    }
+    setInviteSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const data = await apiFetch(`/api/users/search?q=${encodeURIComponent(inviteQuery.trim())}`);
+        setInviteResults(data);
+      } catch {
+        setInviteResults([]);
+      } finally {
+        setInviteSearching(false);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [inviteQuery]);
+
+  async function invitePerson(userId) {
+    setInviteStatus((prev) => ({ ...prev, [userId]: 'sending' }));
+    try {
+      await apiFetch(`/api/communities/${id}/invite`, {
+        method: 'POST',
+        body: JSON.stringify({ user_id: userId }),
+      });
+      setInviteStatus((prev) => ({ ...prev, [userId]: 'sent' }));
+    } catch (err) {
+      setInviteStatus((prev) => ({ ...prev, [userId]: err.message }));
     }
   }
 
@@ -252,10 +304,23 @@ export default function CommunityDetail({ profile }) {
         <PageHeader title={community.name} profile={profile} />
         <Link to="/communities" style={styles.back}>← Back to My Community</Link>
         <div style={styles.pendingCard}>
-          <p style={styles.pendingTitle}>Your request is awaiting approval</p>
-          <p style={styles.dim}>
-            The mentor of {community.name} needs to accept your request before you can see what's shared here.
-          </p>
+          {community.myStatus === 'invited' ? (
+            <>
+              <p style={styles.pendingTitle}>You've been invited to join {community.name}</p>
+              {community.description && <p style={styles.dim}>{community.description}</p>}
+              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                <button onClick={() => respondToInvitation('accepted')} style={styles.acceptButton}>Accept</button>
+                <button onClick={() => respondToInvitation('declined')} style={styles.declineButton}>Decline</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p style={styles.pendingTitle}>Your request is awaiting approval</p>
+              <p style={styles.dim}>
+                The mentor of {community.name} needs to accept your request before you can see what's shared here.
+              </p>
+            </>
+          )}
         </div>
       </div>
     );
@@ -335,6 +400,41 @@ export default function CommunityDetail({ profile }) {
           </span>
         ))}
       </div>
+
+      {community.myRole === 'mentor' && (
+        <div style={styles.inviteBox}>
+          <h4 style={styles.inviteTitle}>Invite someone by username</h4>
+          <input
+            placeholder="Search username…"
+            value={inviteQuery}
+            onChange={(e) => setInviteQuery(e.target.value)}
+            style={styles.inviteInput}
+          />
+          {inviteSearching && <p style={styles.dim}>Searching…</p>}
+          {inviteResults.map((person) => {
+            const state = inviteStatus[person.id];
+            return (
+              <div key={person.id} style={styles.inviteResultRow}>
+                <span style={styles.inviteResultName}>@{person.username} · {person.display_name}</span>
+                {state === 'sent' ? (
+                  <span style={styles.statusTagDim}>Invited</span>
+                ) : (
+                  <button
+                    onClick={() => invitePerson(person.id)}
+                    disabled={state === 'sending'}
+                    style={styles.acceptButton}
+                  >
+                    {state === 'sending' ? '…' : 'Invite'}
+                  </button>
+                )}
+                {state && state !== 'sent' && state !== 'sending' && (
+                  <p style={styles.errorText}>{state}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <h3 style={styles.sectionTitle}>Discussion</h3>
       <div style={styles.chatBox}>
@@ -496,6 +596,21 @@ const styles = {
     textTransform: 'uppercase', color: 'var(--gd-text-dim)', margin: '32px 0 14px',
   },
   memberRow: { display: 'flex', flexWrap: 'wrap', gap: 8 },
+  inviteBox: {
+    marginTop: 20, background: 'var(--gd-surface)', border: '1px solid var(--gd-line)',
+    borderRadius: 'var(--gd-radius)', padding: 16,
+  },
+  inviteTitle: { fontFamily: 'var(--gd-font-display)', fontWeight: 500, fontSize: 14, margin: '0 0 10px', color: 'var(--gd-text)' },
+  inviteInput: {
+    width: '100%', boxSizing: 'border-box', background: 'var(--gd-void)', color: 'var(--gd-text)',
+    border: '1px solid var(--gd-line)', borderRadius: 8, padding: '8px 12px',
+    fontFamily: 'var(--gd-font-mono)', fontSize: 13, marginBottom: 10,
+  },
+  inviteResultRow: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '8px 0', borderTop: '1px solid var(--gd-line)',
+  },
+  inviteResultName: { fontSize: 13, color: 'var(--gd-text)' },
   memberChip: {
     display: 'flex', alignItems: 'center', gap: 6,
     background: 'var(--gd-surface)', border: '1px solid var(--gd-line)', borderRadius: 20,

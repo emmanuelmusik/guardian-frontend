@@ -4,9 +4,11 @@ import { supabase } from './supabaseClient';
 import { apiFetch } from './api';
 import { NotificationsProvider } from './context/NotificationsContext.jsx';
 import { CallProvider } from './context/CallContext.jsx';
+import { MusicProvider } from './context/MusicContext.jsx';
 import Toast from './components/Toast.jsx';
 import BottomNav from './components/BottomNav.jsx';
 import FloatingCall from './components/FloatingCall.jsx';
+import MiniMusicPlayer from './components/MiniMusicPlayer.jsx';
 import Login from './pages/Login.jsx';
 import Onboarding from './pages/Onboarding.jsx';
 import Journal from './pages/Journal.jsx';
@@ -26,6 +28,7 @@ import Profile from './pages/Profile.jsx';
 import Messages from './pages/Messages.jsx';
 import MessageThread from './pages/MessageThread.jsx';
 import SharedWithYou from './pages/SharedWithYou.jsx';
+import PdfViewer from './pages/PdfViewer.jsx';
 
 function Protected({ session, profile, children }) {
   if (!session) return <Navigate to="/login" />;
@@ -65,8 +68,10 @@ function AppRoutes({ session, profile, setProfile }) {
         <Route path="/messages" element={<Protected session={session} profile={profile}><Messages profile={profile} /></Protected>} />
         <Route path="/messages/:userId" element={<Protected session={session} profile={profile}><MessageThread profile={profile} /></Protected>} />
         <Route path="/shared-with-you" element={<Protected session={session} profile={profile}><SharedWithYou profile={profile} /></Protected>} />
+        <Route path="/materials/pdf/:id" element={<Protected session={session} profile={profile}><PdfViewer profile={profile} /></Protected>} />
       </Routes>
       <FloatingCall />
+      {!inCall && <MiniMusicPlayer />}
       {showBottomNav && <BottomNav profile={profile} />}
     </>
   );
@@ -118,10 +123,12 @@ export default function App() {
   return (
     <NotificationsProvider enabled={!!session}>
       <CallProvider>
-        <Toast message={welcomeMessage} onDismiss={() => setWelcomeMessage(null)} />
-        <BrowserRouter>
-          <AppRoutes session={session} profile={profile} setProfile={setProfile} />
-        </BrowserRouter>
+        <MusicProvider>
+          <Toast message={welcomeMessage} onDismiss={() => setWelcomeMessage(null)} />
+          <BrowserRouter>
+            <AppRoutes session={session} profile={profile} setProfile={setProfile} />
+          </BrowserRouter>
+        </MusicProvider>
       </CallProvider>
     </NotificationsProvider>
   );
