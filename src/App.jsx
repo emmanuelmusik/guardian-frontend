@@ -29,6 +29,10 @@ import Messages from './pages/Messages.jsx';
 import MessageThread from './pages/MessageThread.jsx';
 import SharedWithYou from './pages/SharedWithYou.jsx';
 import PdfViewer from './pages/PdfViewer.jsx';
+import PrivacyPolicy from './pages/legal/PrivacyPolicy.jsx';
+import TermsOfService from './pages/legal/TermsOfService.jsx';
+import Support from './pages/legal/Support.jsx';
+import DeleteAccountInfo from './pages/legal/DeleteAccountInfo.jsx';
 
 function Protected({ session, profile, children }) {
   if (!session) return <Navigate to="/login" />;
@@ -69,6 +73,10 @@ function AppRoutes({ session, profile, setProfile }) {
         <Route path="/messages/:userId" element={<Protected session={session} profile={profile}><MessageThread profile={profile} /></Protected>} />
         <Route path="/shared-with-you" element={<Protected session={session} profile={profile}><SharedWithYou profile={profile} /></Protected>} />
         <Route path="/materials/pdf/:id" element={<Protected session={session} profile={profile}><PdfViewer profile={profile} /></Protected>} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="/delete-account" element={<DeleteAccountInfo />} />
       </Routes>
       <FloatingCall />
       {!inCall && <MiniMusicPlayer />}

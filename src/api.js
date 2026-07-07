@@ -2,20 +2,43 @@ import { supabase } from './supabaseClient';
 
 const API_BASE = import.meta.env.VITE_API_BASE;
 
+// The backend can take a while to respond to its very first request
+// after sitting idle (a cold start) — long enough that a shorter
+// timeout would misfire on something that's actually still working.
+const TIMEOUT_MS = 25000;
+
+function timeoutSignal(ms) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return { signal: controller.signal, clear: () => clearTimeout(timer) };
+}
+
 // Wraps fetch to the Guardian backend, attaching the current user's
 // Supabase access token so requireAuth on the server can verify it.
 export async function apiFetch(path, options = {}) {
   const { data } = await supabase.auth.getSession();
   const token = data?.session?.access_token;
+  const { signal, clear } = timeoutSignal(TIMEOUT_MS);
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error("This is taking longer than expected — the server may be waking up. Please try again in a moment.");
+    }
+    throw new Error('Could not reach the server. Check your connection and try again.');
+  } finally {
+    clear();
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));

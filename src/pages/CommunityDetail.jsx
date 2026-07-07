@@ -6,6 +6,7 @@ import Attachment from '../components/Attachment.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { nameFor, isOnline } from '../utils/formatUser';
 import UserLink from '../components/UserLink.jsx';
+import ReportModal from '../components/ReportModal.jsx';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
 const MAX_ATTACHMENT_MB = 25;
@@ -43,6 +44,7 @@ export default function CommunityDetail({ profile }) {
   const [inviteResults, setInviteResults] = useState([]);
   const [inviteSearching, setInviteSearching] = useState(false);
   const [inviteStatus, setInviteStatus] = useState({});
+  const [reportingMessage, setReportingMessage] = useState(null);
 
   useEffect(() => {
     load();
@@ -448,6 +450,9 @@ export default function CommunityDetail({ profile }) {
             {(msg.author_id === profile?.id || community.myRole === 'mentor') && (
               <button onClick={() => deleteMessage(msg.id)} style={styles.deleteMessageButton}>Delete</button>
             )}
+            {msg.author_id !== profile?.id && (
+              <button onClick={() => setReportingMessage(msg)} style={styles.deleteMessageButton}>Report</button>
+            )}
             {msg.body && <p style={styles.chatBody}>{msg.body}</p>}
             {msg.attachment_path && <Attachment path={msg.attachment_path} type={msg.attachment_type} />}
           </div>
@@ -535,6 +540,15 @@ export default function CommunityDetail({ profile }) {
           <span style={styles.materialTitle}>{mat.title}</span>
         </a>
       ))}
+
+      {reportingMessage && (
+        <ReportModal
+          reportedUserId={reportingMessage.author_id}
+          contentType="community_message"
+          contentId={reportingMessage.id}
+          onClose={() => setReportingMessage(null)}
+        />
+      )}
     </div>
   );
 }

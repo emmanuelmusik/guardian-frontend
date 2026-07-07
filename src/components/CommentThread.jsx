@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../api';
 import UserLink from './UserLink.jsx';
+import ReportModal from './ReportModal.jsx';
 
 export default function CommentThread({ entryId, currentUserId }) {
   const [comments, setComments] = useState([]);
@@ -9,6 +10,7 @@ export default function CommentThread({ entryId, currentUserId }) {
   const [posting, setPosting] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editBody, setEditBody] = useState('');
+  const [reportingComment, setReportingComment] = useState(null);
 
   useEffect(() => {
     apiFetch(`/api/comments/entry/${entryId}`)
@@ -66,6 +68,9 @@ export default function CommentThread({ entryId, currentUserId }) {
                   <button onClick={() => deleteComment(c.id)} style={styles.linkButtonDanger}>Delete</button>
                 </span>
               )}
+              {c.author_id !== currentUserId && (
+                <button onClick={() => setReportingComment(c)} style={styles.linkButton}>Report</button>
+              )}
             </div>
             {editingId === c.id ? (
               <div style={styles.editRow}>
@@ -91,6 +96,15 @@ export default function CommentThread({ entryId, currentUserId }) {
           {posting ? '…' : 'Send'}
         </button>
       </form>
+
+      {reportingComment && (
+        <ReportModal
+          reportedUserId={reportingComment.author_id}
+          contentType="comment"
+          contentId={reportingComment.id}
+          onClose={() => setReportingComment(null)}
+        />
+      )}
     </div>
   );
 }

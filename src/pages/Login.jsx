@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
 export default function Login() {
@@ -31,6 +32,14 @@ export default function Login() {
         </button>
 
         {error && <p style={styles.error}>{error}</p>}
+
+        <p style={styles.legalRow}>
+          <Link to="/privacy" style={styles.legalLink}>Privacy</Link>
+          <span style={styles.legalDot}>·</span>
+          <Link to="/terms" style={styles.legalLink}>Terms</Link>
+          <span style={styles.legalDot}>·</span>
+          <Link to="/support" style={styles.legalLink}>Support</Link>
+        </p>
       </div>
     </div>
   );
@@ -121,4 +130,7 @@ const styles = {
     fontSize: 14,
     marginTop: 16,
   },
+  legalRow: { marginTop: 20, fontSize: 12 },
+  legalLink: { color: 'var(--gd-text-dim)', textDecoration: 'none' },
+  legalDot: { color: 'var(--gd-text-dim)', margin: '0 8px' },
 };

@@ -21,8 +21,10 @@ export default function Onboarding({ profile, onComplete }) {
   const [username, setUsername] = useState('');
   const [usernameStatus, setUsernameStatus] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [slowSave, setSlowSave] = useState(false);
   const [error, setError] = useState(null);
   const checkTimer = useRef(null);
+  const slowTimer = useRef(null);
 
   const usernameIsValidFormat = /^[a-z0-9_]{3,20}$/.test(username);
 
@@ -60,7 +62,9 @@ export default function Onboarding({ profile, onComplete }) {
   async function finish() {
     if (!usernameIsValidFormat || usernameStatus === 'taken') return;
     setSaving(true);
+    setSlowSave(false);
     setError(null);
+    slowTimer.current = setTimeout(() => setSlowSave(true), 4000);
     try {
       const body = { username, onboarded: true };
       if (needsRole) body.role = selectedRole;
@@ -72,6 +76,8 @@ export default function Onboarding({ profile, onComplete }) {
     } catch (err) {
       setError(err.message);
     } finally {
+      clearTimeout(slowTimer.current);
+      setSlowSave(false);
       setSaving(false);
     }
   }
@@ -128,13 +134,16 @@ export default function Onboarding({ profile, onComplete }) {
             <p style={styles.error}>3-20 characters: lowercase letters, numbers, underscores</p>
           )}
           {error && <p style={styles.error}>{error}</p>}
+          {saving && slowSave && (
+            <p style={styles.hint}>Still working — this can take a bit longer if the server just woke up. Hang tight…</p>
+          )}
 
           <button
             onClick={finish}
             disabled={!usernameIsValidFormat || usernameStatus === 'taken' || saving}
             style={{ ...styles.confirm, opacity: usernameIsValidFormat && usernameStatus !== 'taken' ? 1 : 0.5 }}
           >
-            {saving ? 'Saving…' : 'Continue'}
+            {saving ? (slowSave ? 'Still saving…' : 'Saving…') : 'Continue'}
           </button>
         </>
       )}

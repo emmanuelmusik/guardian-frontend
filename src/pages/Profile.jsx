@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Flag, ShieldOff } from 'lucide-react';
 import { apiFetch } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
+import ReportModal from '../components/ReportModal.jsx';
 import { isOnline } from '../utils/formatUser';
 
 export default function Profile({ profile: myProfile }) {
@@ -11,6 +13,9 @@ export default function Profile({ profile: myProfile }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [connecting, setConnecting] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const [blocking, setBlocking] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -18,6 +23,9 @@ export default function Profile({ profile: myProfile }) {
       .then(setPerson)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+    apiFetch('/api/moderation/blocks')
+      .then((list) => setBlocked(list.some((b) => b.blocked_id === id)))
+      .catch(() => {});
   }, [id]);
 
   async function connect() {
@@ -40,6 +48,23 @@ export default function Profile({ profile: myProfile }) {
       setError(err.message);
     } finally {
       setConnecting(false);
+    }
+  }
+
+  async function toggleBlock() {
+    setBlocking(true);
+    try {
+      if (blocked) {
+        await apiFetch(`/api/moderation/block/${id}`, { method: 'DELETE' });
+        setBlocked(false);
+      } else {
+        await apiFetch('/api/moderation/block', { method: 'POST', body: JSON.stringify({ user_id: id }) });
+        setBlocked(true);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBlocking(false);
     }
   }
 
@@ -71,24 +96,39 @@ export default function Profile({ profile: myProfile }) {
         {person.bio && <p style={styles.bio}>{person.bio}</p>}
 
         {!person.isSelf && (
-          <div style={styles.actions}>
-            {connected && (
-              <button onClick={() => navigate(`/messages/${person.id}`)} style={styles.primaryButton}>
-                Message
+          <>
+            <div style={styles.actions}>
+              {connected && !blocked && (
+                <button onClick={() => navigate(`/messages/${person.id}`)} style={styles.primaryButton}>
+                  Message
+                </button>
+              )}
+              {pending && !blocked && <span style={styles.pendingTag}>Request pending</span>}
+              {!connected && !pending && !blocked && (
+                <button onClick={connect} disabled={connecting} style={styles.primaryButton}>
+                  {connecting ? '…' : 'Connect'}
+                </button>
+              )}
+            </div>
+
+            <div style={styles.moderationRow}>
+              <button onClick={() => setShowReport(true)} style={styles.moderationButton}>
+                <Flag size={13} strokeWidth={2} /> Report
               </button>
-            )}
-            {pending && <span style={styles.pendingTag}>Request pending</span>}
-            {!connected && !pending && (
-              <button onClick={connect} disabled={connecting} style={styles.primaryButton}>
-                {connecting ? '…' : 'Connect'}
+              <button onClick={toggleBlock} disabled={blocking} style={styles.moderationButton}>
+                <ShieldOff size={13} strokeWidth={2} /> {blocked ? 'Unblock' : 'Block'}
               </button>
-            )}
-          </div>
+            </div>
+          </>
         )}
         {person.isSelf && (
           <Link to="/settings" style={styles.editLink}>Edit your profile →</Link>
         )}
       </div>
+
+      {showReport && (
+        <ReportModal reportedUserId={person.id} contentType="user" onClose={() => setShowReport(false)} />
+      )}
     </div>
   );
 }
@@ -122,6 +162,12 @@ const styles = {
   },
   pendingTag: {
     fontFamily: 'var(--gd-font-mono)', fontSize: 12, color: 'var(--gd-text-dim)', textTransform: 'uppercase',
+  },
+  moderationRow: { display: 'flex', gap: 16, justifyContent: 'center', marginTop: 16 },
+  moderationButton: {
+    display: 'flex', alignItems: 'center', gap: 5,
+    background: 'transparent', border: 'none', color: 'var(--gd-text-dim)',
+    fontSize: 12, cursor: 'pointer', fontFamily: 'var(--gd-font-mono)',
   },
   editLink: { display: 'inline-block', marginTop: 8, color: 'var(--gd-violet)', fontSize: 13, textDecoration: 'none' },
   dim: { color: 'var(--gd-text-dim)', fontSize: 14 },

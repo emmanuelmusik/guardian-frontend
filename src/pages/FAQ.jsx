@@ -50,6 +50,10 @@ const SECTIONS = [
     title: 'Settings',
     body: 'Update your profile photo, bio, and username (chosen and required during signup — how others find and see you), switch between being an aspirant or a mentor, export your data, or delete your account.',
   },
+  {
+    title: 'Safety',
+    body: "Tap Report on any profile, chat message, or comment to flag it for review. Block someone from their profile to stop them from messaging or connecting with you — manage blocked people anytime from Settings. Privacy Policy, Terms of Service, and Support contact are all linked from Settings.",
+  },
 ];
 
 export default function FAQ({ profile }) {

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { apiFetch, apiUpload, apiDownloadFile } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
@@ -26,6 +27,23 @@ export default function Settings({ profile, onUpdate }) {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+
+  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [unblocking, setUnblocking] = useState(null);
+
+  useEffect(() => {
+    apiFetch('/api/moderation/blocks').then(setBlockedUsers).catch(() => {});
+  }, []);
+
+  async function unblock(userId) {
+    setUnblocking(userId);
+    try {
+      await apiFetch(`/api/moderation/block/${userId}`, { method: 'DELETE' });
+      setBlockedUsers((prev) => prev.filter((b) => b.blocked_id !== userId));
+    } finally {
+      setUnblocking(null);
+    }
+  }
 
   useEffect(() => {
     if (username === (profile.username || '')) {
@@ -229,6 +247,30 @@ export default function Settings({ profile, onUpdate }) {
         {exportError && <p style={styles.error}>{exportError}</p>}
       </div>
 
+      <div style={{ ...styles.card, marginTop: 20 }}>
+        <h3 style={styles.cardTitle}>Blocked users</h3>
+        {blockedUsers.length === 0 && <p style={styles.cardBody}>You haven't blocked anyone.</p>}
+        {blockedUsers.map((b) => (
+          <div key={b.blocked_id} style={styles.blockedRow}>
+            <span style={{ color: 'var(--gd-text)', fontSize: 14 }}>
+              {b.profiles?.username ? `@${b.profiles.username}` : b.profiles?.display_name || 'Unknown'}
+            </span>
+            <button onClick={() => unblock(b.blocked_id)} disabled={unblocking === b.blocked_id} style={styles.switchButton}>
+              {unblocking === b.blocked_id ? '…' : 'Unblock'}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ ...styles.card, marginTop: 20 }}>
+        <h3 style={styles.cardTitle}>Legal</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Link to="/privacy" style={styles.legalLink}>Privacy Policy</Link>
+          <Link to="/terms" style={styles.legalLink}>Terms of Service</Link>
+          <Link to="/support" style={styles.legalLink}>Support</Link>
+        </div>
+      </div>
+
       <div style={{ ...styles.card, marginTop: 20, borderColor: 'var(--gd-error)' }}>
         <h3 style={{ ...styles.cardTitle, color: 'var(--gd-error)' }}>Danger zone</h3>
         <p style={styles.cardBody}>
@@ -297,6 +339,11 @@ const styles = {
     color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap',
   },
   hint: { fontSize: 12, color: 'var(--gd-text-dim)', marginTop: 8, marginBottom: 8 },
+  legalLink: { color: 'var(--gd-violet)', fontSize: 14, textDecoration: 'none' },
+  blockedRow: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '8px 0', borderTop: '1px solid var(--gd-line)',
+  },
   hintGood: { fontSize: 12, color: 'var(--gd-gold)', marginTop: 8 },
   error: { color: 'var(--gd-error)', fontSize: 13, marginTop: 12 },
 };
