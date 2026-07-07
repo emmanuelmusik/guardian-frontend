@@ -100,13 +100,37 @@ export default function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  const [profileError, setProfileError] = useState(null);
+  const profileRetries = useRef(0);
+
+  async function loadProfile() {
+    try {
+      const data = await apiFetch('/api/profile');
+      setProfile(data);
+      setProfileError(null);
+      profileRetries.current = 0;
+    } catch (err) {
+      // Never treat a failed request as "must be a new user" — that's
+      // exactly what was sending fully set-up accounts to onboarding
+      // on a network hiccup, with nothing to ever retry it.
+      if (profileRetries.current < 3) {
+        profileRetries.current += 1;
+        setTimeout(loadProfile, profileRetries.current * 1500);
+      } else {
+        setProfileError(err.message);
+      }
+    }
+  }
+
   useEffect(() => {
     if (session) {
-      apiFetch('/api/profile').then(setProfile).catch(() => setProfile(null));
+      profileRetries.current = 0;
+      loadProfile();
     } else if (session === null) {
       setProfile(null);
+      setProfileError(null);
     }
-  }, [session]);
+  }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (profile && justSignedIn.current) {
@@ -123,6 +147,27 @@ export default function App() {
     }, 30000);
     return () => clearInterval(interval);
   }, [session]);
+
+  if (session && profileError) {
+    return (
+      <div className="gd-loading">
+        <p style={{ marginBottom: 16 }}>Couldn't load your profile. {profileError}</p>
+        <button
+          onClick={() => {
+            setProfileError(null);
+            profileRetries.current = 0;
+            loadProfile();
+          }}
+          style={{
+            background: 'var(--gd-gold)', border: 'none', borderRadius: 8, padding: '10px 20px',
+            color: 'var(--gd-on-accent)', fontWeight: 600, fontSize: 14, cursor: 'pointer',
+          }}
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   if (session === undefined || (session && profile === undefined)) {
     return <div className="gd-loading">Keeping watch…</div>;
