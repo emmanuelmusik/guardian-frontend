@@ -61,7 +61,10 @@ export default function MessageThread({ profile }) {
 
   return (
     <div style={styles.page}>
-      <PageHeader title={person ? person.display_name : 'Messages'} profile={profile} />
+      <PageHeader
+        title={person ? <Link to={`/profile/${person.id}`} style={styles.nameLink}>{person.display_name}</Link> : 'Messages'}
+        profile={profile}
+      />
       <Link to="/messages" style={styles.back}>← Back to messages</Link>
 
       {error && <p style={styles.errorText}>{error}</p>}
@@ -100,6 +103,7 @@ export default function MessageThread({ profile }) {
 
 const styles = {
   page: { maxWidth: 640, margin: '0 auto', padding: '48px 24px 100px' },
+  nameLink: { color: 'inherit', textDecoration: 'none' },
   back: { display: 'inline-block', color: 'var(--gd-text-dim)', fontSize: 13, textDecoration: 'none', marginBottom: 20 },
   thread: { display: 'flex', flexDirection: 'column', gap: 8, minHeight: 200 },
   bubbleRow: { display: 'flex' },
