@@ -110,9 +110,13 @@ export default function App() {
       setProfileError(null);
       profileRetries.current = 0;
     } catch (err) {
-      // Never treat a failed request as "must be a new user" — that's
-      // exactly what was sending fully set-up accounts to onboarding
-      // on a network hiccup, with nothing to ever retry it.
+      if (err.isSessionExpired) {
+        // The refresh attempt inside apiFetch already failed, so there's
+        // nothing left to retry — sign out cleanly and let them sign
+        // back in, rather than showing a dead-end error.
+        await supabase.auth.signOut();
+        return;
+      }
       if (profileRetries.current < 3) {
         profileRetries.current += 1;
         setTimeout(loadProfile, profileRetries.current * 1500);

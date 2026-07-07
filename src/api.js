@@ -15,7 +15,11 @@ function timeoutSignal(ms) {
 
 // Wraps fetch to the Guardian backend, attaching the current user's
 // Supabase access token so requireAuth on the server can verify it.
-export async function apiFetch(path, options = {}) {
+// If the server rejects the token as expired, this tries refreshing
+// the session once and retrying — a token going stale (e.g. after the
+// phone puts the tab to sleep for a while) is normal and recoverable;
+// it shouldn't require a manual retry that can never actually work.
+export async function apiFetch(path, options = {}, _isRetry = false) {
   const { data } = await supabase.auth.getSession();
   const token = data?.session?.access_token;
   const { signal, clear } = timeoutSignal(TIMEOUT_MS);
@@ -38,6 +42,16 @@ export async function apiFetch(path, options = {}) {
     throw new Error('Could not reach the server. Check your connection and try again.');
   } finally {
     clear();
+  }
+
+  if (response.status === 401 && !_isRetry) {
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+    if (!refreshError && refreshed?.session) {
+      return apiFetch(path, options, true);
+    }
+    const sessionError = new Error('Your session has expired. Please sign in again.');
+    sessionError.isSessionExpired = true;
+    throw sessionError;
   }
 
   if (!response.ok) {
