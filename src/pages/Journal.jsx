@@ -120,7 +120,7 @@ export default function Journal({ session, profile }) {
         title="Your journal"
         subtitle={
           <span style={styles.scripture}>
-            "Write the vision And make it plain on tablets. For the vision is yet for an appointed time; But at the end it will speak, and it will not lie."
+            "Write the vision down, make it plane, though it might tarry but it must surely come to pass."
           </span>
         }
         profile={profile}

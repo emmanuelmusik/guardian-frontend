@@ -191,6 +191,7 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
           <option value="person" disabled={connections.length === 0}>
             Share with someone
           </option>
+          <option value="public">Share publicly</option>
         </select>
         {visibility === 'community' && (
           <select value={communityId} onChange={(e) => setCommunityId(e.target.value)} style={styles.select}>

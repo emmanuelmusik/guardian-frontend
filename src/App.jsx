@@ -33,6 +33,7 @@ import PrivacyPolicy from './pages/legal/PrivacyPolicy.jsx';
 import TermsOfService from './pages/legal/TermsOfService.jsx';
 import Support from './pages/legal/Support.jsx';
 import DeleteAccountInfo from './pages/legal/DeleteAccountInfo.jsx';
+import PublicFeed from './pages/PublicFeed.jsx';
 
 function Protected({ session, profile, children }) {
   if (!session) return <Navigate to="/login" />;
@@ -77,6 +78,7 @@ function AppRoutes({ session, profile, setProfile }) {
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/support" element={<Support />} />
         <Route path="/delete-account" element={<DeleteAccountInfo />} />
+        <Route path="/public" element={<Protected session={session} profile={profile}><PublicFeed profile={profile} /></Protected>} />
       </Routes>
       <FloatingCall />
       {!inCall && <MiniMusicPlayer />}

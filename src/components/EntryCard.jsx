@@ -99,7 +99,9 @@ export default function EntryCard({ entry, communities = [], connections = [], o
           ? 'Shared with a fellow aspirant'
           : entry.visibility === 'person'
             ? 'Shared with someone'
-            : 'Shared with community';
+            : entry.visibility === 'public'
+              ? 'Shared publicly'
+              : 'Shared with community';
 
   return (
     <div id={`entry-${entry.id}`} style={{ ...styles.card, ...(autoExpandFeedback ? styles.cardHighlighted : {}) }}>
@@ -167,6 +169,7 @@ export default function EntryCard({ entry, communities = [], connections = [], o
             <option value="private">Private</option>
             <option value="community" disabled={communities.length === 0}>Share with a community</option>
             <option value="person" disabled={connections.length === 0}>Share with someone</option>
+            <option value="public">Share publicly</option>
           </select>
           {visibility === 'community' && (
             <select value={communityId} onChange={(e) => setCommunityId(e.target.value)} style={styles.select}>

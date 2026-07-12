@@ -465,15 +465,19 @@ export default function CommunityDetail({ profile }) {
             onChange={(e) => setMessageBody(e.target.value)}
             style={styles.chatInput}
           />
-          <label style={styles.attachButton} title={`Attach a photo, video, or audio file (max ${MAX_ATTACHMENT_MB} MB)`}>
-            📎
-            <input
-              type="file"
-              accept="image/*,video/*,audio/*"
-              onChange={handleFileSelect}
-              style={{ display: 'none' }}
-            />
-          </label>
+          {profile?.is_subscriber ? (
+            <label style={styles.attachButton} title={`Attach a photo, video, or audio file (max ${MAX_ATTACHMENT_MB} MB)`}>
+              📎
+              <input
+                type="file"
+                accept="image/*,video/*,audio/*"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+              />
+            </label>
+          ) : (
+            <span style={styles.attachButton} title="Sharing media is a subscriber feature">📎🔒</span>
+          )}
           <button type="submit" disabled={sending || (!messageBody.trim() && !file)} style={styles.chatSend}>
             {sending ? '…' : 'Send'}
           </button>
