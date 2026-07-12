@@ -25,6 +25,23 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
   const sessionFinalRef = useRef('');
   const shouldContinueRef = useRef(false);
 
+  // Browsers' built-in speech recognition doesn't add punctuation on its
+  // own, so support saying it explicitly — a standard dictation pattern.
+  function applyPunctuationCommands(text) {
+    return text
+      .replace(/\s*\bnew paragraph\b\s*/gi, '\n\n')
+      .replace(/\s*\bnew line\b\s*/gi, '\n')
+      .replace(/\s*\bfull stop\b\s*/gi, '. ')
+      .replace(/\s*\bperiod\b\s*/gi, '. ')
+      .replace(/\s*\bcomma\b\s*/gi, ', ')
+      .replace(/\s*\bquestion mark\b\s*/gi, '? ')
+      .replace(/\s*\bexclamation (mark|point)\b\s*/gi, '! ')
+      .replace(/\s*\bcolon\b\s*/gi, ': ')
+      .replace(/\s*\bsemicolon\b\s*/gi, '; ')
+      .replace(/[ \t]+([.,!?;:])/g, '$1')
+      .replace(/[ \t]{2,}/g, ' ');
+  }
+
   useEffect(() => {
     return () => clearInterval(timerRef.current);
   }, []);
@@ -61,10 +78,12 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
       }
       if (finalChunk) sessionFinalRef.current += finalChunk;
 
-      const combined = [sessionBaseRef.current, sessionFinalRef.current, interim]
-        .filter(Boolean)
-        .join(' ')
-        .replace(/\s+/g, ' ');
+      const combined = applyPunctuationCommands(
+        [sessionBaseRef.current, sessionFinalRef.current, interim]
+          .filter(Boolean)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+      );
       setContent(combined);
     };
 
@@ -198,6 +217,11 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
           <button type="button" onClick={stopRecording} style={styles.stopButton}>Stop</button>
         </div>
       )}
+      {listening && (
+        <p style={styles.punctuationHint}>
+          Say "period", "comma", "question mark", "new line", or "new paragraph" to punctuate.
+        </p>
+      )}
 
       <div style={styles.row}>
         {!listening && (
@@ -310,6 +334,12 @@ const styles = {
     fontSize: 13,
     fontWeight: 600,
     cursor: 'pointer',
+  },
+  punctuationHint: {
+    fontSize: 11,
+    color: 'var(--gd-text-dim)',
+    marginTop: -4,
+    marginBottom: 12,
   },
   submit: {
     marginLeft: 'auto',
