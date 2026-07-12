@@ -118,7 +118,11 @@ export default function Journal({ session, profile }) {
     <div style={styles.page}>
       <PageHeader
         title="Your journal"
-        subtitle={'"Write the vision And make it plain on tablets. For the vision is yet for an appointed time; But at the end it will speak, and it will not lie."'}
+        subtitle={
+          <span style={styles.scripture}>
+            "Write the vision And make it plain on tablets. For the vision is yet for an appointed time; But at the end it will speak, and it will not lie."
+          </span>
+        }
         profile={profile}
       />
 
@@ -184,6 +188,13 @@ const styles = {
     maxWidth: 640,
     margin: '0 auto',
     padding: '48px 24px 80px',
+  },
+  scripture: {
+    fontFamily: 'var(--gd-font-display)',
+    fontStyle: 'italic',
+    fontSize: 15,
+    lineHeight: 1.7,
+    color: 'var(--gd-text-dim)',
   },
   exportAllButton: {
     display: 'block',

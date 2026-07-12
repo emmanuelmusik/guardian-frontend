@@ -83,6 +83,5 @@ const styles = {
     color: 'var(--gd-text-dim)',
     marginTop: 10,
     lineHeight: 1.6,
-    maxWidth: 440,
   },
 };
