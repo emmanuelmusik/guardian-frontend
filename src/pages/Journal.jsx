@@ -119,10 +119,7 @@ export default function Journal({ session, profile }) {
       <PageHeader title="Your journal" profile={profile} />
 
       <blockquote style={styles.scripture}>
-        "Write the vision<br />
-        And make it plain on tablets.<br />
-        For the vision is yet for an appointed time;<br />
-        But at the end it will speak, and it will not lie."
+        "Write the vision And make it plain on tablets. For the vision is yet for an appointed time; But at the end it will speak, and it will not lie."
       </blockquote>
 
       <hr className="gd-horizon" style={{ marginBottom: 32 }} />
