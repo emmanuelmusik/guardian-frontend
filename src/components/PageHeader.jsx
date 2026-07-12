@@ -27,7 +27,7 @@ export default function PageHeader({ title, subtitle, profile }) {
           transform: visible ? 'translateY(0)' : 'translateY(-100%)',
         }}
       >
-        <div>
+        <div style={styles.titleBlock}>
           <p style={styles.eyebrow}>Guardian</p>
           <h1 style={styles.heading}>{title}</h1>
           {subtitle && <p style={styles.subtitle}>{subtitle}</p>}
@@ -59,10 +59,15 @@ const styles = {
     margin: '0 auto',
     boxSizing: 'border-box',
   },
+  titleBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
   actions: {
     display: 'flex',
     gap: 8,
     alignItems: 'center',
+    flexShrink: 0,
   },
   eyebrow: {
     fontFamily: 'var(--gd-font-mono)',
