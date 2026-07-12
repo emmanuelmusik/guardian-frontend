@@ -146,6 +146,7 @@ export default function Journal({ session, profile }) {
           connections={connections}
           onUpdate={handleUpdateEntry}
           onDelete={handleDeleteEntry}
+          currentUserId={profile?.id}
         />
       ))}
     </div>

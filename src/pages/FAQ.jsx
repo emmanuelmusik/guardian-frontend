@@ -8,7 +8,7 @@ const SECTIONS = [
   },
   {
     title: 'Journal',
-    body: "Your home screen. Record dreams, visions, intuitions, or notes — type or tap \"Speak instead\" to dictate, with your words appearing live as you speak and a timer showing how long you've been recording; tap Stop when you're done. Filter by category or search across everything you've written. Each entry has Edit (fix the text), Share… (send it to a community, or search and pick any specific person you're connected with), Export (download that one entry as a PDF), and Delete. There's also an \"Export all entries as PDF\" button above your entries to download everything at once.",
+    body: "Your home screen. Record dreams, visions, intuitions, or notes — type or tap \"Speak instead\" to dictate, with your words appearing live and automatically punctuated at natural pauses (not perfect, but no extra effort needed), plus a timer showing how long you've been recording; tap Stop when you're done. Filter by category or search across everything you've written. Each entry has Edit (fix the text), Share… (send it to a community, or search and pick any specific person you're connected with), Feedback (see comments people have left on anything you've shared — shows only once an entry is shared with someone), Export (download that one entry as a PDF), and Delete. There's also an \"Export all entries as PDF\" button above your entries to download everything at once.",
   },
   {
     title: 'Profiles',

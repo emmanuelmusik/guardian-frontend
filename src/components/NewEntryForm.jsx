@@ -25,21 +25,20 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
   const sessionFinalRef = useRef('');
   const shouldContinueRef = useRef(false);
 
-  // Browsers' built-in speech recognition doesn't add punctuation on its
-  // own, so support saying it explicitly — a standard dictation pattern.
-  function applyPunctuationCommands(text) {
-    return text
-      .replace(/\s*\bnew paragraph\b\s*/gi, '\n\n')
-      .replace(/\s*\bnew line\b\s*/gi, '\n')
-      .replace(/\s*\bfull stop\b\s*/gi, '. ')
-      .replace(/\s*\bperiod\b\s*/gi, '. ')
-      .replace(/\s*\bcomma\b\s*/gi, ', ')
-      .replace(/\s*\bquestion mark\b\s*/gi, '? ')
-      .replace(/\s*\bexclamation (mark|point)\b\s*/gi, '! ')
-      .replace(/\s*\bcolon\b\s*/gi, ': ')
-      .replace(/\s*\bsemicolon\b\s*/gi, '; ')
-      .replace(/[ \t]+([.,!?;:])/g, '$1')
-      .replace(/[ \t]{2,}/g, ' ');
+  // Browsers' speech recognition doesn't punctuate on its own, and there's
+  // no setting to turn that on — it's entirely up to the engine behind
+  // the browser. As a practical stand-in: each "final" chunk the
+  // recognizer returns already corresponds to a natural pause in speech,
+  // so treat that boundary as the end of a sentence — capitalize it and
+  // close it with a period unless it already ends in punctuation. Not
+  // perfect grammar-level punctuation, but requires no effort and is a
+  // solid approximation of natural sentence breaks.
+  function punctuateFinalizedPhrase(phrase) {
+    let text = phrase.trim();
+    if (!text) return text;
+    text = text.charAt(0).toUpperCase() + text.slice(1);
+    if (!/[.,!?;:]$/.test(text)) text += '.';
+    return text;
   }
 
   useEffect(() => {
@@ -73,17 +72,15 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) finalChunk += `${transcript} `;
+        if (event.results[i].isFinal) finalChunk += `${punctuateFinalizedPhrase(transcript)} `;
         else interim += transcript;
       }
       if (finalChunk) sessionFinalRef.current += finalChunk;
 
-      const combined = applyPunctuationCommands(
-        [sessionBaseRef.current, sessionFinalRef.current, interim]
-          .filter(Boolean)
-          .join(' ')
-          .replace(/\s+/g, ' ')
-      );
+      const combined = [sessionBaseRef.current, sessionFinalRef.current, interim]
+        .filter(Boolean)
+        .join(' ')
+        .replace(/[ \t]+/g, ' ');
       setContent(combined);
     };
 
@@ -216,11 +213,6 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
           <span style={styles.recordingLabel}>Recording… {formatElapsed(recordingSeconds)}</span>
           <button type="button" onClick={stopRecording} style={styles.stopButton}>Stop</button>
         </div>
-      )}
-      {listening && (
-        <p style={styles.punctuationHint}>
-          Say "period", "comma", "question mark", "new line", or "new paragraph" to punctuate.
-        </p>
       )}
 
       <div style={styles.row}>

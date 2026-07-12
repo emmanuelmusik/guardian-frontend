@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { apiFetch, apiDownloadFile } from '../api';
 import ConnectionPicker from './ConnectionPicker.jsx';
+import CommentThread from './CommentThread.jsx';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
 
-export default function EntryCard({ entry, communities = [], connections = [], onUpdate, onDelete }) {
+export default function EntryCard({ entry, communities = [], connections = [], onUpdate, onDelete, currentUserId }) {
   const [editing, setEditing] = useState(false);
   const [editingText, setEditingText] = useState(false);
   const [editTitle, setEditTitle] = useState(entry.title || '');
@@ -16,6 +17,7 @@ export default function EntryCard({ entry, communities = [], connections = [], o
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const date = new Date(entry.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
@@ -138,6 +140,11 @@ export default function EntryCard({ entry, communities = [], connections = [], o
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button onClick={() => setEditingText(true)} style={styles.shareButton}>Edit</button>
             <button onClick={() => setEditing(true)} style={styles.shareButton}>Share…</button>
+            {entry.visibility !== 'private' && (
+              <button onClick={() => setShowFeedback((v) => !v)} style={styles.shareButton}>
+                {showFeedback ? 'Hide feedback' : 'Feedback'}
+              </button>
+            )}
             <button onClick={exportEntry} disabled={exporting} style={styles.shareButton}>
               {exporting ? '…' : 'Export'}
             </button>
@@ -147,6 +154,8 @@ export default function EntryCard({ entry, communities = [], connections = [], o
           </div>
         </div>
       )}
+
+      {showFeedback && <CommentThread entryId={entry.id} currentUserId={currentUserId} />}
 
       {editing && (
         <div style={styles.editRow}>
