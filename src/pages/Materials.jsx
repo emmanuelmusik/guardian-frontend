@@ -94,7 +94,10 @@ export default function Materials({ profile }) {
                 <div key={m.id} style={styles.card}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                     <button
-                      onClick={() => play({ id: m.id, title: m.title, url: m.url })}
+                      onClick={() => play(
+                        { id: m.id, title: m.title, url: m.url },
+                        music.map((track) => ({ id: track.id, title: track.title, url: track.url }))
+                      )}
                       style={styles.playButton}
                       aria-label={isThis && isPlaying ? 'Pause' : 'Play'}
                     >

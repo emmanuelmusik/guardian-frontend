@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ConnectionPicker from './ConnectionPicker.jsx';
 
 const TYPES = [
@@ -16,20 +16,35 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
   const [communityId, setCommunityId] = useState(communities[0]?.id || '');
   const [personId, setPersonId] = useState('');
   const [listening, setListening] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [saving, setSaving] = useState(false);
   const recognitionRef = useRef(null);
   const submitLockRef = useRef(false);
+  const timerRef = useRef(null);
 
-  function toggleVoice() {
+  useEffect(() => {
+    return () => clearInterval(timerRef.current);
+  }, []);
+
+  function startTimer() {
+    setRecordingSeconds(0);
+    timerRef.current = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
+  }
+
+  function stopTimer() {
+    clearInterval(timerRef.current);
+  }
+
+  function formatElapsed(totalSeconds) {
+    const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+    const s = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function startRecording() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert('Voice input isn\'t supported in this browser. Try Chrome or Safari.');
-      return;
-    }
-
-    if (listening) {
-      recognitionRef.current?.stop();
-      setListening(false);
       return;
     }
 
@@ -50,11 +65,21 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
         .join(' ');
       setContent(baseContent ? `${baseContent} ${transcript}` : transcript);
     };
-    recognition.onend = () => setListening(false);
+    recognition.onend = () => {
+      setListening(false);
+      stopTimer();
+    };
 
     recognitionRef.current = recognition;
     recognition.start();
     setListening(true);
+    startTimer();
+  }
+
+  function stopRecording() {
+    recognitionRef.current?.stop();
+    setListening(false);
+    stopTimer();
   }
 
   async function handleSubmit(e) {
@@ -132,14 +157,20 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
         </div>
       )}
 
+      {listening && (
+        <div style={styles.recordingBar}>
+          <span style={styles.recordingDot} />
+          <span style={styles.recordingLabel}>Recording… {formatElapsed(recordingSeconds)}</span>
+          <button type="button" onClick={stopRecording} style={styles.stopButton}>Stop</button>
+        </div>
+      )}
+
       <div style={styles.row}>
-        <button
-          type="button"
-          onClick={toggleVoice}
-          style={{ ...styles.iconButton, ...(listening ? styles.iconButtonActive : {}) }}
-        >
-          {listening ? '● Listening…' : '🎙 Speak instead'}
-        </button>
+        {!listening && (
+          <button type="button" onClick={startRecording} style={styles.iconButton}>
+            🎙 Speak instead
+          </button>
+        )}
         <button
           type="submit"
           disabled={saving || !content.trim() || (visibility === 'person' && !personId)}
@@ -211,6 +242,40 @@ const styles = {
   iconButtonActive: {
     borderColor: 'var(--gd-gold)',
     color: 'var(--gd-gold)',
+  },
+  recordingBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    background: 'var(--gd-void)',
+    border: '1px solid var(--gd-error)',
+    borderRadius: 8,
+    padding: '10px 14px',
+    marginBottom: 12,
+  },
+  recordingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: '50%',
+    background: 'var(--gd-error)',
+    animation: 'gd-recording-pulse 1.2s ease-in-out infinite',
+    flexShrink: 0,
+  },
+  recordingLabel: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: 'var(--gd-font-mono)',
+    color: 'var(--gd-text)',
+  },
+  stopButton: {
+    background: 'var(--gd-error)',
+    border: 'none',
+    borderRadius: 8,
+    padding: '6px 16px',
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
   },
   submit: {
     marginLeft: 'auto',

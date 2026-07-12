@@ -3,9 +3,12 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 const MusicContext = createContext(null);
 
 export function MusicProvider({ children }) {
-  const [current, setCurrent] = useState(null); // { id, title, url }
+  const [queue, setQueue] = useState([]); // [{ id, title, url }]
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
+
+  const current = queue[currentIndex] || null;
 
   useEffect(() => {
     if (!audioRef.current) return;
@@ -13,30 +16,56 @@ export function MusicProvider({ children }) {
     else audioRef.current.pause();
   }, [isPlaying, current]);
 
-  function play(material) {
+  // Play a track. If a full list is given (e.g. everything in the Music
+  // tab), that becomes the queue so playback continues into the next
+  // song automatically; otherwise just play this one track on a loop.
+  function play(material, list) {
+    const playlist = list && list.length ? list : [material];
+    const index = playlist.findIndex((m) => m.id === material.id);
+
     if (current?.id === material.id) {
       setIsPlaying((p) => !p);
-    } else {
-      setCurrent(material);
-      setIsPlaying(true);
+      return;
     }
+
+    setQueue(playlist);
+    setCurrentIndex(index === -1 ? 0 : index);
+    setIsPlaying(true);
+  }
+
+  function playNext() {
+    if (queue.length === 0) return;
+    setCurrentIndex((i) => (i + 1) % queue.length); // loops back to the start
+    setIsPlaying(true);
+  }
+
+  function playPrevious() {
+    if (queue.length === 0) return;
+    setCurrentIndex((i) => (i - 1 + queue.length) % queue.length);
+    setIsPlaying(true);
   }
 
   function stop() {
     setIsPlaying(false);
-    setCurrent(null);
+    setQueue([]);
+    setCurrentIndex(0);
   }
 
   return (
-    <MusicContext.Provider value={{ current, isPlaying, play, stop }}>
+    <MusicContext.Provider value={{ current, isPlaying, queue, play, playNext, playPrevious, stop }}>
       {children}
       {current && (
-        <audio ref={audioRef} src={current.url} onEnded={() => setIsPlaying(false)} />
+        <audio ref={audioRef} src={current.url} onEnded={playNext} />
       )}
     </MusicContext.Provider>
   );
 }
 
 export function useMusic() {
-  return useContext(MusicContext) || { current: null, isPlaying: false, play: () => {}, stop: () => {} };
+  return (
+    useContext(MusicContext) || {
+      current: null, isPlaying: false, queue: [],
+      play: () => {}, playNext: () => {}, playPrevious: () => {}, stop: () => {},
+    }
+  );
 }

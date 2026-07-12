@@ -8,7 +8,7 @@ const SECTIONS = [
   },
   {
     title: 'Journal',
-    body: "Your home screen. Record dreams, visions, intuitions, or notes — type or tap \"Speak instead\" to dictate. Filter by category or search across everything you've written. Each entry has Edit (fix the text), Share… (send it to a community, or search and pick any specific person you're connected with), and Delete.",
+    body: "Your home screen. Record dreams, visions, intuitions, or notes — type or tap \"Speak instead\" to dictate (shows a live recording timer; tap Stop when you're done). Filter by category or search across everything you've written. Each entry has Edit (fix the text), Share… (send it to a community, or search and pick any specific person you're connected with), and Delete.",
   },
   {
     title: 'Profiles',
@@ -28,7 +28,7 @@ const SECTIONS = [
   },
   {
     title: 'Shared With You',
-    body: 'Entries someone you\'re connected with chose to share directly with you, rather than with an entire community, show up here. Leave feedback the same way you would on anything shared in a community.',
+    body: 'Entries someone you\'re connected with chose to share directly with you. Organized by who shared it — tap a person to see their shared entries by title, then tap a title to read the full entry and any feedback thread. You get a notification whenever something new is shared with you, and whenever someone leaves feedback on one of your entries.',
   },
   {
     title: 'Find People',
@@ -40,7 +40,7 @@ const SECTIONS = [
   },
   {
     title: 'Materials',
-    body: "The app's featured library, split into tabs: Music (with a player that keeps playing as you browse elsewhere in the app — look for the mini player bar), Videos, YouTube, and PDF Books (opens right in the app, not a new tab). Only the app admin can add to it for now. Mentors can recommend items from here into their own community.",
+    body: "The app's featured library, split into tabs: Music (tap play on any track and it plays through the whole list automatically, looping back to the start when it finishes — the mini player bar keeps playing as you browse elsewhere in the app), Videos, YouTube, and PDF Books (opens right in the app, not a new tab). Only the app admin can add to it for now. Mentors can recommend items from here into their own community.",
   },
   {
     title: 'Notifications',
