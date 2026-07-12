@@ -60,14 +60,17 @@ const styles = {
     boxSizing: 'border-box',
   },
   titleBlock: {
-    flex: 1,
+    flex: '1 1 0%',
     minWidth: 0,
+    width: '100%',
+    boxSizing: 'border-box',
   },
   actions: {
     display: 'flex',
     gap: 8,
     alignItems: 'center',
     flexShrink: 0,
+    marginLeft: 12,
   },
   eyebrow: {
     fontFamily: 'var(--gd-font-mono)',
@@ -88,5 +91,6 @@ const styles = {
     color: 'var(--gd-text-dim)',
     marginTop: 10,
     lineHeight: 1.6,
+    width: '100%',
   },
 };
