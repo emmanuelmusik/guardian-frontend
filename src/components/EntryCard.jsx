@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, apiDownloadFile } from '../api';
 import ConnectionPicker from './ConnectionPicker.jsx';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
@@ -15,6 +15,7 @@ export default function EntryCard({ entry, communities = [], connections = [], o
   const [personId, setPersonId] = useState(entry.shared_with_user_id || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const date = new Date(entry.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
@@ -61,6 +62,16 @@ export default function EntryCard({ entry, communities = [], connections = [], o
     setEditTitle(entry.title || '');
     setEditContent(entry.content || '');
     setEditingText(false);
+  }
+
+  async function exportEntry() {
+    setExporting(true);
+    try {
+      const filename = (entry.title || 'entry').replace(/[^a-zA-Z0-9._ -]/g, '').trim() || 'entry';
+      await apiDownloadFile(`/api/entries/${entry.id}/export`, `${filename}.pdf`);
+    } finally {
+      setExporting(false);
+    }
   }
 
   async function handleDelete() {
@@ -124,9 +135,12 @@ export default function EntryCard({ entry, communities = [], connections = [], o
       {!editing && !editingText && (
         <div style={styles.footer}>
           <span style={styles.visibility}>{visibilityLabel}</span>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button onClick={() => setEditingText(true)} style={styles.shareButton}>Edit</button>
             <button onClick={() => setEditing(true)} style={styles.shareButton}>Share…</button>
+            <button onClick={exportEntry} disabled={exporting} style={styles.shareButton}>
+              {exporting ? '…' : 'Export'}
+            </button>
             <button onClick={handleDelete} disabled={deleting} style={styles.deleteButton}>
               {deleting ? 'Deleting…' : 'Delete'}
             </button>

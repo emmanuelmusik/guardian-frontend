@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, apiDownloadFile } from '../api';
 import NewEntryForm from '../components/NewEntryForm.jsx';
 import EntryCard from '../components/EntryCard.jsx';
 import PageHeader from '../components/PageHeader.jsx';
@@ -20,6 +20,18 @@ export default function Journal({ session, profile }) {
   const [error, setError] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
   const [search, setSearch] = useState('');
+  const [exporting, setExporting] = useState(false);
+
+  async function exportAll() {
+    setExporting(true);
+    try {
+      await apiDownloadFile('/api/entries/export', 'journal.pdf');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   useEffect(() => {
     loadEntries();
@@ -89,6 +101,12 @@ export default function Journal({ session, profile }) {
 
       <NewEntryForm onCreate={handleCreate} communities={communities} connections={connections} />
 
+      {entries.length > 0 && (
+        <button onClick={exportAll} disabled={exporting} style={styles.exportAllButton}>
+          {exporting ? 'Preparing PDF…' : 'Export all entries as PDF'}
+        </button>
+      )}
+
       <input
         placeholder="Search your entries…"
         value={search}
@@ -139,6 +157,20 @@ const styles = {
     maxWidth: 640,
     margin: '0 auto',
     padding: '48px 24px 80px',
+  },
+  exportAllButton: {
+    display: 'block',
+    width: '100%',
+    boxSizing: 'border-box',
+    background: 'transparent',
+    border: '1px solid var(--gd-line)',
+    borderRadius: 8,
+    padding: '10px 14px',
+    color: 'var(--gd-violet)',
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: 'pointer',
+    marginBottom: 14,
   },
   search: {
     width: '100%',

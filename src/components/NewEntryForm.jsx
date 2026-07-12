@@ -21,6 +21,9 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
   const recognitionRef = useRef(null);
   const submitLockRef = useRef(false);
   const timerRef = useRef(null);
+  const sessionBaseRef = useRef('');
+  const sessionFinalRef = useRef('');
+  const shouldContinueRef = useRef(false);
 
   useEffect(() => {
     return () => clearInterval(timerRef.current);
@@ -41,6 +44,55 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
     return `${m}:${s}`;
   }
 
+  function beginRecognitionSession() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+      let finalChunk = '';
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) finalChunk += `${transcript} `;
+        else interim += transcript;
+      }
+      if (finalChunk) sessionFinalRef.current += finalChunk;
+
+      const combined = [sessionBaseRef.current, sessionFinalRef.current, interim]
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' ');
+      setContent(combined);
+    };
+
+    recognition.onend = () => {
+      if (shouldContinueRef.current) {
+        // Android's speech recognizer often ends a session after a brief
+        // pause even with continuous:true — that's a hiccup, not the
+        // person actually wanting to stop, so pick up right where the
+        // transcript left off instead of losing it.
+        sessionBaseRef.current = `${sessionBaseRef.current} ${sessionFinalRef.current}`.trim();
+        sessionFinalRef.current = '';
+        beginRecognitionSession();
+      } else {
+        setListening(false);
+        stopTimer();
+      }
+    };
+
+    recognition.onerror = (event) => {
+      // Benign/expected on some Android builds — onend's restart logic
+      // (above) handles recovering from these, nothing to surface here.
+      if (event.error === 'no-speech' || event.error === 'aborted') return;
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }
+
   function startRecording() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -48,35 +100,17 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
       return;
     }
 
-    // Snapshot whatever was already typed before speaking started — the
-    // browser's transcript is cumulative for the whole session, so each
-    // update below replaces (not appends to) what's shown, layered on
-    // top of this snapshot only.
-    const baseContent = content;
+    sessionBaseRef.current = content;
+    sessionFinalRef.current = '';
+    shouldContinueRef.current = true;
 
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map((r) => r[0].transcript)
-        .join(' ');
-      setContent(baseContent ? `${baseContent} ${transcript}` : transcript);
-    };
-    recognition.onend = () => {
-      setListening(false);
-      stopTimer();
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
+    beginRecognitionSession();
     setListening(true);
     startTimer();
   }
 
   function stopRecording() {
+    shouldContinueRef.current = false;
     recognitionRef.current?.stop();
     setListening(false);
     stopTimer();
