@@ -35,6 +35,18 @@ export default function Settings({ profile, onUpdate }) {
     apiFetch('/api/moderation/blocks').then(setBlockedUsers).catch(() => {});
   }, []);
 
+  async function updateEmailPref(enabled) {
+    try {
+      const updated = await apiFetch('/api/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ email_notifications_enabled: enabled }),
+      });
+      onUpdate(updated);
+    } catch {
+      // Silently ignore — the checkbox will simply not reflect the change
+    }
+  }
+
   async function unblock(userId) {
     setUnblocking(userId);
     try {
@@ -263,6 +275,21 @@ export default function Settings({ profile, onUpdate }) {
       </div>
 
       <div style={{ ...styles.card, marginTop: 20 }}>
+        <h3 style={styles.cardTitle}>Email</h3>
+        <p style={styles.cardBody}>
+          Get a monthly PDF of your journal by email on the 1st of each month, and a gentle nudge if you've gone quiet for a week.
+        </p>
+        <label style={styles.toggleRow}>
+          <input
+            type="checkbox"
+            checked={profile.email_notifications_enabled !== false}
+            onChange={(e) => updateEmailPref(e.target.checked)}
+          />
+          Email me these
+        </label>
+      </div>
+
+      <div style={{ ...styles.card, marginTop: 20 }}>
         <h3 style={styles.cardTitle}>Legal</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Link to="/privacy" style={styles.legalLink}>Privacy Policy</Link>
@@ -340,6 +367,7 @@ const styles = {
   },
   hint: { fontSize: 12, color: 'var(--gd-text-dim)', marginTop: 8, marginBottom: 8 },
   legalLink: { color: 'var(--gd-violet)', fontSize: 14, textDecoration: 'none' },
+  toggleRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--gd-text)', cursor: 'pointer' },
   blockedRow: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     padding: '8px 0', borderTop: '1px solid var(--gd-line)',

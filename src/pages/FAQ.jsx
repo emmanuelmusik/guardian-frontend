@@ -48,7 +48,7 @@ const SECTIONS = [
   },
   {
     title: 'Settings',
-    body: 'Update your profile photo, bio, and username (chosen and required during signup — how others find and see you), switch between being an aspirant or a mentor, export your data, or delete your account.',
+    body: 'Update your profile photo, bio, and username (chosen and required during signup — how others find and see you), switch between being an aspirant or a mentor, choose whether you get monthly journal emails and inactivity reminders, export your data, or delete your account.',
   },
   {
     title: 'Public Page',
