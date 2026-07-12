@@ -44,7 +44,7 @@ const SECTIONS = [
   },
   {
     title: 'Notifications',
-    body: 'The bell icon (top-right of every page) shows join requests, acceptances, new community posts, new messages, and call starts. Tap one to jump straight to what it\'s about.',
+    body: 'The bell icon (top-right of every page) shows join requests, acceptances, new community posts, new messages, and call starts. Tapping a "new feedback" notification jumps straight to that entry in your journal and opens its feedback thread automatically. Tap any notification to jump straight to what it\'s about.',
   },
   {
     title: 'Settings',

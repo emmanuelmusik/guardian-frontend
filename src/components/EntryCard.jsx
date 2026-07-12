@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { apiFetch, apiDownloadFile } from '../api';
 import ConnectionPicker from './ConnectionPicker.jsx';
 import CommentThread from './CommentThread.jsx';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
 
-export default function EntryCard({ entry, communities = [], connections = [], onUpdate, onDelete, currentUserId }) {
+export default function EntryCard({ entry, communities = [], connections = [], onUpdate, onDelete, currentUserId, autoExpandFeedback = false }) {
   const [editing, setEditing] = useState(false);
   const [editingText, setEditingText] = useState(false);
   const [editTitle, setEditTitle] = useState(entry.title || '');
@@ -18,6 +18,10 @@ export default function EntryCard({ entry, communities = [], connections = [], o
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+
+  useEffect(() => {
+    if (autoExpandFeedback) setShowFeedback(true);
+  }, [autoExpandFeedback]);
 
   const date = new Date(entry.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
@@ -98,7 +102,7 @@ export default function EntryCard({ entry, communities = [], connections = [], o
             : 'Shared with community';
 
   return (
-    <div style={styles.card}>
+    <div id={`entry-${entry.id}`} style={{ ...styles.card, ...(autoExpandFeedback ? styles.cardHighlighted : {}) }}>
       <div style={styles.meta}>
         <span style={styles.glyph}>{TYPE_GLYPH[entry.type] || '—'}</span>
         <span style={styles.type}>{entry.type}</span>
@@ -195,6 +199,10 @@ const styles = {
     borderRadius: 'var(--gd-radius)',
     padding: 18,
     marginBottom: 14,
+  },
+  cardHighlighted: {
+    borderColor: 'var(--gd-gold)',
+    boxShadow: '0 0 0 3px var(--gd-gold-dim)',
   },
   meta: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
   glyph: { color: 'var(--gd-gold)', fontSize: 14 },

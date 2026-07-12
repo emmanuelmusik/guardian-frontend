@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { apiFetch, apiDownloadFile } from '../api';
 import NewEntryForm from '../components/NewEntryForm.jsx';
 import EntryCard from '../components/EntryCard.jsx';
@@ -13,6 +14,9 @@ const CATEGORIES = [
 ];
 
 export default function Journal({ session, profile }) {
+  const location = useLocation();
+  const targetEntryId = new URLSearchParams(location.search).get('entry');
+
   const [entries, setEntries] = useState([]);
   const [communities, setCommunities] = useState([]);
   const [connections, setConnections] = useState([]);
@@ -42,6 +46,23 @@ export default function Journal({ session, profile }) {
       .then(setConnections)
       .catch(() => setConnections([]));
   }, []);
+
+  // Arriving from a "new feedback" notification: make sure the target
+  // entry isn't hidden by an active filter, then scroll to it once it's
+  // actually on the page.
+  useEffect(() => {
+    if (!targetEntryId || entries.length === 0) return;
+    const target = entries.find((e) => e.id === targetEntryId);
+    if (!target) return;
+
+    if (activeCategory !== 'all' && target.type !== activeCategory) setActiveCategory('all');
+    if (search.trim()) setSearch('');
+
+    const scrollTimer = setTimeout(() => {
+      document.getElementById(`entry-${targetEntryId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+    return () => clearTimeout(scrollTimer);
+  }, [targetEntryId, entries]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadEntries() {
     setLoading(true);
@@ -147,6 +168,7 @@ export default function Journal({ session, profile }) {
           onUpdate={handleUpdateEntry}
           onDelete={handleDeleteEntry}
           currentUserId={profile?.id}
+          autoExpandFeedback={entry.id === targetEntryId}
         />
       ))}
     </div>
