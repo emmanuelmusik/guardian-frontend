@@ -116,11 +116,11 @@ export default function Journal({ session, profile }) {
 
   return (
     <div style={styles.page}>
-      <PageHeader title="Your journal" profile={profile} />
-
-      <blockquote style={styles.scripture}>
-        "Write the vision And make it plain on tablets. For the vision is yet for an appointed time; But at the end it will speak, and it will not lie."
-      </blockquote>
+      <PageHeader
+        title="Your journal"
+        subtitle={'"Write the vision And make it plain on tablets. For the vision is yet for an appointed time; But at the end it will speak, and it will not lie."'}
+        profile={profile}
+      />
 
       <hr className="gd-horizon" style={{ marginBottom: 32 }} />
 
@@ -184,16 +184,6 @@ const styles = {
     maxWidth: 640,
     margin: '0 auto',
     padding: '48px 24px 80px',
-  },
-  scripture: {
-    margin: '0 0 28px',
-    padding: '0 0 0 16px',
-    borderLeft: '2px solid var(--gd-gold-dim)',
-    fontFamily: 'var(--gd-font-display)',
-    fontStyle: 'italic',
-    fontSize: 15,
-    lineHeight: 1.7,
-    color: 'var(--gd-text-dim)',
   },
   exportAllButton: {
     display: 'block',
