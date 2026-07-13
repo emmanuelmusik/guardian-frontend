@@ -116,15 +116,11 @@ export default function Journal({ session, profile }) {
 
   return (
     <div style={styles.page}>
-      <PageHeader
-        title="Your journal"
-        subtitle={
-          <span style={styles.scripture}>
-            "Write the vision down, make it plane, though it might tarry but it must surely come to pass."
-          </span>
-        }
-        profile={profile}
-      />
+      <PageHeader title="Your journal" profile={profile} />
+
+      <p style={styles.scripture}>
+        "Write the vision down, make it plane, though it might tarry but it must surely come to pass."
+      </p>
 
       <hr className="gd-horizon" style={{ marginBottom: 32 }} />
 
@@ -190,6 +186,9 @@ const styles = {
     padding: '48px 24px 80px',
   },
   scripture: {
+    width: '100%',
+    boxSizing: 'border-box',
+    margin: '0 0 12px',
     fontFamily: 'var(--gd-font-display)',
     fontStyle: 'italic',
     fontSize: 15,
