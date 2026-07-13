@@ -188,7 +188,7 @@ const styles = {
   scripture: {
     width: '100%',
     boxSizing: 'border-box',
-    margin: '0 0 12px',
+    margin: '-16px 0 12px',
     fontFamily: 'var(--gd-font-display)',
     fontStyle: 'italic',
     fontSize: 15,
