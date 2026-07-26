@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import { supabase, authRedirectUrl } from '../supabaseClient';
 
 export default function Login() {
   const [error, setError] = useState(null);
@@ -9,7 +9,7 @@ export default function Login() {
     setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: authRedirectUrl() },
     });
     if (error) setError(error.message);
   }
@@ -18,7 +18,7 @@ export default function Login() {
     setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'apple',
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: authRedirectUrl() },
     });
     if (error) setError(error.message);
   }

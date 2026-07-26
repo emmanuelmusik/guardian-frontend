@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { supabase } from './supabaseClient';
+import { supabase, isNativeApp } from './supabaseClient';
 import { apiFetch } from './api';
 import { NotificationsProvider } from './context/NotificationsContext.jsx';
 import { CallProvider } from './context/CallContext.jsx';
@@ -100,6 +100,40 @@ export default function App() {
       setSession(newSession);
     });
     return () => listener.subscription.unsubscribe();
+  }, []);
+
+  // Native apps only: OAuth sign-in happens out in the system browser
+  // (Google requires this), then Supabase redirects to the app's own
+  // deep link (love.guardian.app://auth-callback). This listener catches
+  // that link when Android/iOS reopens the app, and exchanges the
+  // returned code for a real session — completing sign-in *inside* the
+  // app instead of stranding it in Chrome/Safari.
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    const appPlugin = window.Capacitor?.Plugins?.App;
+    if (!appPlugin) return;
+
+    const listenerPromise = appPlugin.addListener('appUrlOpen', async ({ url }) => {
+      if (!url || !url.startsWith('love.guardian.app://auth-callback')) return;
+
+      const codeMatch = url.match(/[?&]code=([^&#]+)/);
+      if (codeMatch) {
+        await supabase.auth.exchangeCodeForSession(decodeURIComponent(codeMatch[1])).catch(() => {});
+        return;
+      }
+      // Fallback for implicit-style fragments, just in case
+      const tokenMatch = url.match(/access_token=([^&]+).*refresh_token=([^&]+)/);
+      if (tokenMatch) {
+        await supabase.auth.setSession({
+          access_token: decodeURIComponent(tokenMatch[1]),
+          refresh_token: decodeURIComponent(tokenMatch[2]),
+        }).catch(() => {});
+      }
+    });
+
+    return () => {
+      listenerPromise.then((l) => l.remove()).catch(() => {});
+    };
   }, []);
 
   const [profileError, setProfileError] = useState(null);
