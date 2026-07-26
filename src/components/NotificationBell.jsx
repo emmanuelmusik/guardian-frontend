@@ -14,7 +14,7 @@ function timeAgo(dateStr) {
 }
 
 export default function NotificationBell() {
-  const { notifications, unreadCount, markRead } = useNotifications();
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
   const navigate = useNavigate();
@@ -41,6 +41,11 @@ export default function NotificationBell() {
       </button>
       {open && (
         <div style={styles.dropdown}>
+          {notifications.length > 0 && unreadCount > 0 && (
+            <div style={styles.headerRow}>
+              <button onClick={markAllRead} style={styles.markAllButton}>Mark all as read</button>
+            </div>
+          )}
           {notifications.length === 0 && <p style={styles.empty}>No notifications yet.</p>}
           {notifications.map((n) => (
             <button key={n.id} onClick={() => handleClick(n)} style={styles.item}>
@@ -104,6 +109,21 @@ const styles = {
     boxShadow: '0 8px 24px rgba(20,32,44,0.12)',
   },
   empty: { color: 'var(--gd-text-dim)', fontSize: 13, padding: 16, margin: 0 },
+  headerRow: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    padding: '8px 12px',
+    borderBottom: '1px solid var(--gd-line)',
+  },
+  markAllButton: {
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--gd-violet)',
+    fontSize: 12,
+    cursor: 'pointer',
+    padding: 0,
+    fontFamily: 'var(--gd-font-mono)',
+  },
   item: {
     display: 'flex',
     gap: 8,

@@ -55,13 +55,22 @@ export function NotificationsProvider({ enabled, children }) {
     }
   }
 
+  async function markAllRead() {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    try {
+      await apiFetch('/api/notifications/read-all', { method: 'POST' });
+    } catch {
+      // Best-effort — same as markRead above
+    }
+  }
+
   return (
-    <NotificationsContext.Provider value={{ notifications, unreadCount, markRead }}>
+    <NotificationsContext.Provider value={{ notifications, unreadCount, markRead, markAllRead }}>
       {children}
     </NotificationsContext.Provider>
   );
 }
 
 export function useNotifications() {
-  return useContext(NotificationsContext) || { notifications: [], unreadCount: 0, markRead: () => {} };
+  return useContext(NotificationsContext) || { notifications: [], unreadCount: 0, markRead: () => {}, markAllRead: () => {} };
 }

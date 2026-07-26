@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { apiFetch } from '../api';
 import CommentThread from '../components/CommentThread.jsx';
 import PageHeader from '../components/PageHeader.jsx';
@@ -7,6 +8,9 @@ import { nameFor } from '../utils/formatUser';
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
 
 export default function SharedWithYou({ profile }) {
+  const location = useLocation();
+  const targetEntryId = new URLSearchParams(location.search).get('entry');
+
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,6 +23,16 @@ export default function SharedWithYou({ profile }) {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  // Arriving from a notification — jump straight to the sharer and
+  // entry it's about, instead of landing on the general list.
+  useEffect(() => {
+    if (!targetEntryId || entries.length === 0) return;
+    const target = entries.find((e) => e.id === targetEntryId);
+    if (!target) return;
+    setSelectedSharerId(target.user_id);
+    setExpandedEntryId(target.id);
+  }, [targetEntryId, entries]);
 
   // Group entries by who shared them
   const sharers = [];
