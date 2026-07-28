@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
+import PageIntro from '../components/PageIntro.jsx';
 
 export default function FindPeople({ profile }) {
   const [query, setQuery] = useState('');
@@ -56,7 +57,9 @@ export default function FindPeople({ profile }) {
 
   return (
     <div style={styles.page}>
-      <PageHeader title="Find people" subtitle="Search by username to connect with a mentor or fellow aspirant." profile={profile} />
+      <PageHeader title="Find people" profile={profile} />
+
+      <PageIntro>Search by username to connect with a mentor or fellow aspirant.</PageIntro>
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 

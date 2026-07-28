@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch, apiUpload } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
+import PageIntro from '../components/PageIntro.jsx';
 import UserLink from '../components/UserLink.jsx';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
@@ -74,11 +75,9 @@ export default function PublicFeed({ profile }) {
 
   return (
     <div style={styles.page}>
-      <PageHeader
-        title="Public page 💭"
-        subtitle="Share a thought, or a journal entry you've made public. Visible to everyone signed in to Guardian."
-        profile={profile}
-      />
+      <PageHeader title="Public page 💭" profile={profile} />
+
+      <PageIntro>Share a thought, or a journal entry you've made public. Visible to everyone signed in to Guardian.</PageIntro>
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 

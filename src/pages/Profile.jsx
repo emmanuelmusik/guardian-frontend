@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Flag, ShieldOff } from 'lucide-react';
+import { Flag, ShieldOff, UserMinus } from 'lucide-react';
 import { apiFetch } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
 import ReportModal from '../components/ReportModal.jsx';
@@ -16,6 +16,7 @@ export default function Profile({ profile: myProfile }) {
   const [showReport, setShowReport] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -48,6 +49,20 @@ export default function Profile({ profile: myProfile }) {
       setError(err.message);
     } finally {
       setConnecting(false);
+    }
+  }
+
+  async function disconnect() {
+    if (!window.confirm('Disconnect from this person? You will no longer be able to message each other, and any entries shared directly between you will no longer be visible.')) return;
+    setDisconnecting(true);
+    try {
+      await apiFetch(`/api/connections/with/${id}`, { method: 'DELETE' });
+      const refreshed = await apiFetch(`/api/users/${id}`);
+      setPerson(refreshed);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDisconnecting(false);
     }
   }
 
@@ -112,6 +127,11 @@ export default function Profile({ profile: myProfile }) {
             </div>
 
             <div style={styles.moderationRow}>
+              {connected && (
+                <button onClick={disconnect} disabled={disconnecting} style={styles.moderationButton}>
+                  <UserMinus size={13} strokeWidth={2} /> {disconnecting ? '…' : 'Disconnect'}
+                </button>
+              )}
               <button onClick={() => setShowReport(true)} style={styles.moderationButton}>
                 <Flag size={13} strokeWidth={2} /> Report
               </button>

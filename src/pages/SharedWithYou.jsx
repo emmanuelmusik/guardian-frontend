@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { apiFetch } from '../api';
 import CommentThread from '../components/CommentThread.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import PageIntro from '../components/PageIntro.jsx';
 import { nameFor } from '../utils/formatUser';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
@@ -53,11 +54,9 @@ export default function SharedWithYou({ profile }) {
 
   return (
     <div style={styles.page}>
-      <PageHeader
-        title="Shared with you"
-        subtitle="Entries someone you're connected with has chosen to share directly with you."
-        profile={profile}
-      />
+      <PageHeader title="Shared with you" profile={profile} />
+
+      <PageIntro>Entries someone you're connected with has chosen to share directly with you.</PageIntro>
 
       <hr className="gd-horizon" style={{ margin: '24px 0 32px' }} />
 

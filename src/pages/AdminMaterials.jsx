@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch, apiUpload } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
+import PageIntro from '../components/PageIntro.jsx';
 
 const TYPES = [
   { value: 'pdf', label: 'PDF' },
@@ -88,11 +89,9 @@ export default function AdminMaterials({ profile }) {
 
   return (
     <div style={styles.page}>
-      <PageHeader
-        title="Featured materials"
-        subtitle="These appear in the library mentors pick from when recommending materials to their community."
-        profile={profile}
-      />
+      <PageHeader title="Featured materials" profile={profile} />
+
+      <PageIntro>These appear in the library mentors pick from when recommending materials to their community.</PageIntro>
 
       <hr className="gd-horizon" style={{ marginBottom: 32 }} />
 

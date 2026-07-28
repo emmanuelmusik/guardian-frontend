@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Music, Video as VideoIcon, Youtube, BookOpen, Play, Pause } from 'lucide-react';
 import { apiFetch } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
+import PageIntro from '../components/PageIntro.jsx';
 import { useMusic } from '../context/MusicContext.jsx';
 
 function getYouTubeId(url) {
@@ -58,11 +59,9 @@ export default function Materials({ profile }) {
 
   return (
     <div style={styles.page}>
-      <PageHeader
-        title="Materials"
-        subtitle="The app's featured library — mentors recommend from these into their own communities."
-        profile={profile}
-      />
+      <PageHeader title="Materials" profile={profile} />
+
+      <PageIntro>The app's featured library — mentors recommend from these into their own communities.</PageIntro>
 
       <hr className="gd-horizon" style={{ margin: '24px 0 20px' }} />
 

@@ -24,7 +24,7 @@ const SECTIONS = [
   },
   {
     title: 'Mentorship',
-    body: 'Browse and connect with mentors or aspirants, regardless of your own role — an aspirant can have more than one mentor, and two mentors can connect with each other too. Accept or decline requests coming your way, and see what your connections have shared with you.',
+    body: 'Browse and connect with mentors or aspirants, regardless of your own role — an aspirant can have more than one mentor, and two mentors can connect with each other too. When someone sends you a request you\'ll get a notification, and they\'ll get one back when you accept. To end a connection, open that person\'s profile and tap Disconnect.',
   },
   {
     title: 'Shared With You',
@@ -36,7 +36,7 @@ const SECTIONS = [
   },
   {
     title: 'Bible',
-    body: 'Pick a book and chapter from the dropdowns, choose a translation, and read. Jump straight to a specific verse with the verse picker.',
+    body: 'Pick a book and chapter from the dropdowns, choose a translation, and read. Jump straight to a specific verse with the verse picker. Press and hold a verse to select it (select as many as you like), then save them into your journal — you can edit the text and title before it saves. There\'s also a Read aloud button that narrates the chapter, or just the verses you\'ve selected.',
   },
   {
     title: 'Materials',

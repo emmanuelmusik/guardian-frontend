@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
 
@@ -44,6 +45,112 @@ export default function Bible({ profile }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const navigate = useNavigate();
+  // Verses picked for saving to the journal (a Set of verse numbers).
+  // Separate from selectedVerse, which is just the "jump to" highlight.
+  const [picked, setPicked] = useState(new Set());
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [draftText, setDraftText] = useState('');
+  const [draftTitle, setDraftTitle] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const longPressTimer = useRef(null);
+
+  function togglePicked(verseNum) {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(verseNum)) next.delete(verseNum);
+      else next.add(verseNum);
+      return next;
+    });
+  }
+
+  // Long-press (or right-click on desktop) starts verse selection —
+  // a plain tap still just highlights, as before.
+  function startLongPress(verseNum) {
+    longPressTimer.current = setTimeout(() => togglePicked(verseNum), 450);
+  }
+  function cancelLongPress() {
+    clearTimeout(longPressTimer.current);
+  }
+
+  function pickedVersesText() {
+    if (!passage?.verses) return '';
+    const nums = Array.from(picked).sort((a, b) => a - b);
+    const lines = nums.map((n) => {
+      const v = passage.verses.find((x) => x.verse === n);
+      return v ? `${n}. ${v.text.trim()}` : '';
+    }).filter(Boolean);
+    const label = nums.length === 1
+      ? `${book} ${chapter}:${nums[0]}`
+      : `${book} ${chapter}:${nums[0]}-${nums[nums.length - 1]}`;
+    return `${lines.join('\n')}\n\n— ${label} (${VERSIONS.find(v => v.value === version)?.label || version})`;
+  }
+
+  function openSaveModal() {
+    const nums = Array.from(picked).sort((a, b) => a - b);
+    const label = nums.length === 1
+      ? `${book} ${chapter}:${nums[0]}`
+      : `${book} ${chapter}:${nums[0]}-${nums[nums.length - 1]}`;
+    setDraftTitle(label);
+    setDraftText(pickedVersesText());
+    setShowSaveModal(true);
+  }
+
+  async function saveToJournal() {
+    setSaving(true);
+    try {
+      await apiFetch('/api/entries', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: 'note',
+          title: draftTitle.trim() || null,
+          content: draftText,
+          visibility: 'private',
+        }),
+      });
+      setShowSaveModal(false);
+      setPicked(new Set());
+      navigate('/');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Reads the chapter (or just the picked verses, if any) aloud using
+  // the device's built-in speech synthesis.
+  function toggleSpeech() {
+    if (!('speechSynthesis' in window)) {
+      alert("Your browser doesn't support reading aloud.");
+      return;
+    }
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    const text = picked.size > 0
+      ? Array.from(picked).sort((a, b) => a - b)
+          .map((n) => passage?.verses?.find((v) => v.verse === n)?.text?.trim())
+          .filter(Boolean).join(' ')
+      : (passage?.verses || []).map((v) => v.text.trim()).join(' ') || passage?.text || '';
+    if (!text) return;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.95;
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+    setSpeaking(true);
+  }
+
+  // Stop any narration when leaving the page or changing passage
+  useEffect(() => {
+    return () => { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); };
+  }, []);
+
   const chapterOptions = useMemo(
     () => Array.from({ length: CHAPTER_COUNT[book] || 1 }, (_, i) => i + 1),
     [book]
@@ -62,6 +169,9 @@ export default function Bible({ profile }) {
     setLoading(true);
     setError(null);
     setSelectedVerse(null);
+    setPicked(new Set());
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    setSpeaking(false);
     try {
       const ref = `${book} ${chapter}`;
       const data = await apiFetch(`/api/bible/passage?ref=${encodeURIComponent(ref)}&version=${version}`);
@@ -132,9 +242,17 @@ export default function Bible({ profile }) {
                 key={v.verse}
                 id={`verse-${v.verse}`}
                 onClick={() => setSelectedVerse(v.verse === selectedVerse ? null : v.verse)}
+                onTouchStart={() => startLongPress(v.verse)}
+                onTouchEnd={cancelLongPress}
+                onTouchMove={cancelLongPress}
+                onMouseDown={() => startLongPress(v.verse)}
+                onMouseUp={cancelLongPress}
+                onMouseLeave={cancelLongPress}
+                onContextMenu={(e) => { e.preventDefault(); togglePicked(v.verse); }}
                 style={{
                   ...styles.verse,
                   ...(selectedVerse === v.verse ? styles.verseSelected : {}),
+                  ...(picked.has(v.verse) ? styles.versePicked : {}),
                 }}
               >
                 <span style={styles.verseNum}>{v.verse}</span> {v.text.trim()}
@@ -145,11 +263,102 @@ export default function Bible({ profile }) {
           )}
         </div>
       )}
+
+      {picked.size > 0 && !showSaveModal && (
+        <div style={styles.selectionBar}>
+          <span style={styles.selectionCount}>
+            {picked.size} verse{picked.size === 1 ? '' : 's'} selected
+          </span>
+          <button onClick={() => setPicked(new Set())} style={styles.clearButton}>Clear</button>
+          <button onClick={openSaveModal} style={styles.saveButton}>Add to journal</button>
+        </div>
+      )}
+
+      {showSaveModal && (
+        <div style={styles.overlay} onClick={() => setShowSaveModal(false)}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <h3 style={styles.modalTitle}>Add to your journal</h3>
+            <input
+              value={draftTitle}
+              onChange={(e) => setDraftTitle(e.target.value)}
+              placeholder="Title"
+              style={styles.modalInput}
+            />
+            <textarea
+              value={draftText}
+              onChange={(e) => setDraftText(e.target.value)}
+              rows={10}
+              style={styles.modalTextarea}
+            />
+            <p style={styles.modalHint}>
+              Edit the text above however you like before saving — add your own thoughts, trim it down, anything.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={saveToJournal} disabled={saving || !draftText.trim()} style={styles.saveButton}>
+                {saving ? 'Saving…' : 'Save entry'}
+              </button>
+              <button onClick={() => setShowSaveModal(false)} style={styles.clearButton}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 const styles = {
+  speakButton: {
+    background: 'transparent', border: '1px solid var(--gd-line)', borderRadius: 8,
+    padding: '8px 14px', color: 'var(--gd-violet)', fontSize: 13, cursor: 'pointer',
+    marginBottom: 10,
+  },
+  pickHint: { fontSize: 12, color: 'var(--gd-text-dim)', margin: '0 0 12px', fontStyle: 'italic' },
+  versePicked: {
+    background: 'var(--gd-gold-dim, rgba(232,163,61,0.18))',
+    borderRadius: 6,
+    boxShadow: 'inset 3px 0 0 var(--gd-gold)',
+  },
+  selectionBar: {
+    position: 'fixed', bottom: 70, left: 16, right: 16, zIndex: 200,
+    maxWidth: 608, margin: '0 auto',
+    background: 'var(--gd-surface)', border: '1px solid var(--gd-line)',
+    borderRadius: 12, padding: '12px 14px',
+    display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+    boxShadow: '0 6px 24px rgba(20,32,44,0.16)',
+  },
+  selectionCount: { flex: 1, fontSize: 13, color: 'var(--gd-text)', fontFamily: 'var(--gd-font-mono)' },
+  clearButton: {
+    background: 'transparent', border: '1px solid var(--gd-line)', borderRadius: 8,
+    padding: '8px 14px', color: 'var(--gd-text-dim)', fontSize: 13, cursor: 'pointer',
+  },
+  saveButton: {
+    background: 'var(--gd-gold)', border: 'none', borderRadius: 8, padding: '8px 16px',
+    color: 'var(--gd-on-accent)', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+  },
+  overlay: {
+    position: 'fixed', inset: 0, background: 'rgba(20,32,44,0.5)', zIndex: 300,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+  },
+  modal: {
+    background: 'var(--gd-surface)', borderRadius: 'var(--gd-radius)', padding: 20,
+    width: '100%', maxWidth: 520, maxHeight: '85vh', overflowY: 'auto',
+  },
+  modalTitle: {
+    fontFamily: 'var(--gd-font-display)', fontWeight: 500, fontSize: 18,
+    margin: '0 0 14px', color: 'var(--gd-text)',
+  },
+  modalInput: {
+    width: '100%', boxSizing: 'border-box', background: 'var(--gd-void)', color: 'var(--gd-text)',
+    border: '1px solid var(--gd-line)', borderRadius: 8, padding: '10px 12px',
+    fontSize: 14, marginBottom: 10, fontFamily: 'var(--gd-font-body)',
+  },
+  modalTextarea: {
+    width: '100%', boxSizing: 'border-box', background: 'var(--gd-void)', color: 'var(--gd-text)',
+    border: '1px solid var(--gd-line)', borderRadius: 8, padding: '10px 12px',
+    fontSize: 14, lineHeight: 1.6, resize: 'vertical', marginBottom: 8,
+    fontFamily: 'var(--gd-font-body)',
+  },
+  modalHint: { fontSize: 12, color: 'var(--gd-text-dim)', margin: '0 0 14px' },
   page: { maxWidth: 640, margin: '0 auto', padding: '48px 24px 80px' },
   pickerRow: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 },
   select: {

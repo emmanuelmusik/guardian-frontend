@@ -88,27 +88,25 @@ export default function Communities({ profile }) {
 
       {error && <p style={styles.errorText}>{error}</p>}
 
-      {profile.role === 'mentor' && (
-        <form onSubmit={createCommunity} style={styles.card}>
-          <h3 style={styles.cardTitle}>Start a community</h3>
-          <input
-            placeholder="Community name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            style={styles.input}
-          />
-          <textarea
-            placeholder="What is this community for?"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={2}
-            style={{ ...styles.input, resize: 'vertical' }}
-          />
-          <button type="submit" disabled={creating || !name.trim()} style={styles.primaryButton}>
-            {creating ? 'Creating…' : 'Create community'}
-          </button>
-        </form>
-      )}
+      <form onSubmit={createCommunity} style={styles.card}>
+        <h3 style={styles.cardTitle}>Start a community</h3>
+        <input
+          placeholder="Community name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          style={styles.input}
+        />
+        <textarea
+          placeholder="What is this community for?"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={2}
+          style={{ ...styles.input, resize: 'vertical' }}
+        />
+        <button type="submit" disabled={creating || !name.trim()} style={styles.primaryButton}>
+          {creating ? 'Creating…' : 'Create community'}
+        </button>
+      </form>
 
       {invitations.length > 0 && (
         <>
