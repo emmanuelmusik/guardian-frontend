@@ -17,6 +17,7 @@ export default function Profile({ profile: myProfile }) {
   const [blocked, setBlocked] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [responding, setResponding] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -49,6 +50,23 @@ export default function Profile({ profile: myProfile }) {
       setError(err.message);
     } finally {
       setConnecting(false);
+    }
+  }
+
+  async function respondToRequest(status) {
+    setResponding(true);
+    try {
+      const conn = person.myConnection;
+      const endpoint = conn.type === 'mentor'
+        ? `/api/connections/${conn.id}`
+        : `/api/peer-connections/${conn.id}`;
+      await apiFetch(endpoint, { method: 'PATCH', body: JSON.stringify({ status }) });
+      const refreshed = await apiFetch(`/api/users/${id}`);
+      setPerson(refreshed);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setResponding(false);
     }
   }
 
@@ -118,7 +136,22 @@ export default function Profile({ profile: myProfile }) {
                   Message
                 </button>
               )}
-              {pending && !blocked && <span style={styles.pendingTag}>Request pending</span>}
+              {pending && !blocked && person.myConnection?.incoming && (
+                <div style={{ display: 'flex', gap: 8, flexDirection: 'column', alignItems: 'center' }}>
+                  <span style={styles.pendingTag}>Wants to connect with you</span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => respondToRequest('accepted')} disabled={responding} style={styles.primaryButton}>
+                      {responding ? '…' : 'Accept'}
+                    </button>
+                    <button onClick={() => respondToRequest('declined')} disabled={responding} style={styles.declineButton}>
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              )}
+              {pending && !blocked && !person.myConnection?.incoming && (
+                <span style={styles.pendingTag}>Request pending</span>
+              )}
               {!connected && !pending && !blocked && (
                 <button onClick={connect} disabled={connecting} style={styles.primaryButton}>
                   {connecting ? '…' : 'Connect'}
@@ -179,6 +212,10 @@ const styles = {
   primaryButton: {
     background: 'var(--gd-gold)', border: 'none', borderRadius: 8, padding: '10px 24px',
     color: 'var(--gd-on-accent)', fontWeight: 600, fontSize: 14, cursor: 'pointer',
+  },
+  declineButton: {
+    background: 'transparent', border: '1px solid var(--gd-line)', borderRadius: 8,
+    padding: '10px 20px', color: 'var(--gd-text-dim)', fontSize: 14, cursor: 'pointer',
   },
   pendingTag: {
     fontFamily: 'var(--gd-font-mono)', fontSize: 12, color: 'var(--gd-text-dim)', textTransform: 'uppercase',

@@ -234,6 +234,19 @@ export default function Bible({ profile }) {
       )}
 
       {passage && !loading && (
+        <>
+          <div style={styles.toolsRow}>
+            <button onClick={toggleSpeech} style={styles.speakButton}>
+              {speaking ? '⏹ Stop reading' : '🔊 Read aloud'}
+            </button>
+          </div>
+          <p style={styles.pickHint}>
+            Press and hold a verse to select it. Selected verses can be saved to your journal.
+          </p>
+        </>
+      )}
+
+      {passage && !loading && (
         <div style={styles.card}>
           <p style={styles.reference}>{passage.reference} · {passage.translation_name}</p>
           {passage.verses ? (
@@ -307,6 +320,7 @@ export default function Bible({ profile }) {
 }
 
 const styles = {
+  toolsRow: { display: 'flex', gap: 8, marginBottom: 10 },
   speakButton: {
     background: 'transparent', border: '1px solid var(--gd-line)', borderRadius: 8,
     padding: '8px 14px', color: 'var(--gd-violet)', fontSize: 13, cursor: 'pointer',
