@@ -1,9 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Use the PUBLISHABLE key here, never the secret key — this file ships to the browser.
-// PKCE flow is set explicitly because the native apps complete sign-in via a
-// deep link back into the app: the auth code returns via that link and gets
-// exchanged for a session here, which requires PKCE rather than implicit flow.
 export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -15,15 +11,47 @@ export const supabase = createClient(
   }
 );
 
-// True when running inside the native Android/iOS app (Capacitor injects
-// this bridge into the page), false in a regular browser.
 export function isNativeApp() {
   return !!window.Capacitor?.isNativePlatform?.();
 }
 
-// Where OAuth should land after sign-in: the app's own deep link when
-// native (so the session comes back into the app instead of stranding in
-// Chrome/Safari), the normal web origin otherwise.
 export function authRedirectUrl() {
   return isNativeApp() ? 'love.guardian.app://auth-callback' : window.location.origin;
+}
+
+// Opens OAuth sign-in correctly in both web and native contexts.
+// On iOS/iPadOS, Capacitor's WKWebView blocks external navigation by default,
+// so we must get the OAuth URL from Supabase first, then open it via the
+// Capacitor Browser plugin (which opens a proper in-app SFSafariViewController)
+// rather than trying to navigate the WebView directly, which is what was
+// causing the "unresponsive" behavior Apple's reviewer saw on iPad.
+export async function signInWithProvider(provider) {
+  if (isNativeApp()) {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: authRedirectUrl(),
+        skipBrowserRedirect: true,
+      },
+    });
+    if (error) throw error;
+    if (data?.url) {
+      // Use Capacitor's Browser plugin via the global Plugins object —
+      // imported this way (not via `import @capacitor/browser`) so Vite
+      // doesn't try to bundle a native-only package into the web build.
+      const Browser = window.Capacitor?.Plugins?.Browser;
+      if (Browser) {
+        await Browser.open({ url: data.url });
+      } else {
+        // Fallback: let the system handle it
+        window.location.href = data.url;
+      }
+    }
+  } else {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: authRedirectUrl() },
+    });
+    if (error) throw error;
+  }
 }

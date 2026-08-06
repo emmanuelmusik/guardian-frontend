@@ -111,30 +111,47 @@ export default function App() {
   useEffect(() => {
     if (!isNativeApp()) return;
     const appPlugin = window.Capacitor?.Plugins?.App;
-    if (!appPlugin) return;
+    const browserPlugin = window.Capacitor?.Plugins?.Browser;
 
-    const listenerPromise = appPlugin.addListener('appUrlOpen', async ({ url }) => {
-      if (!url || !url.startsWith('love.guardian.app://auth-callback')) return;
+    const listeners = [];
 
-      const codeMatch = url.match(/[?&]code=([^&#]+)/);
-      if (codeMatch) {
-        await supabase.auth.exchangeCodeForSession(decodeURIComponent(codeMatch[1])).catch(() => {});
-        return;
-      }
-      // Fallback for implicit-style fragments, just in case
-      const tokenMatch = url.match(/access_token=([^&]+).*refresh_token=([^&]+)/);
-      if (tokenMatch) {
-        await supabase.auth.setSession({
-          access_token: decodeURIComponent(tokenMatch[1]),
-          refresh_token: decodeURIComponent(tokenMatch[2]),
-        }).catch(() => {});
-      }
-    });
+    // Deep link handler — catches the auth-callback URL on both platforms
+    if (appPlugin) {
+      const p = appPlugin.addListener('appUrlOpen', async ({ url }) => {
+        if (!url || !url.startsWith('love.guardian.app://auth-callback')) return;
+        const codeMatch = url.match(/[?&]code=([^&#]+)/);
+        if (codeMatch) {
+          await supabase.auth.exchangeCodeForSession(decodeURIComponent(codeMatch[1])).catch(() => {});
+          return;
+        }
+        const tokenMatch = url.match(/access_token=([^&]+).*refresh_token=([^&]+)/);
+        if (tokenMatch) {
+          await supabase.auth.setSession({
+            access_token: decodeURIComponent(tokenMatch[1]),
+            refresh_token: decodeURIComponent(tokenMatch[2]),
+          }).catch(() => {});
+        }
+      });
+      listeners.push(p);
+    }
+
+    // On iOS, also try to refresh the session when the in-app browser
+    // (SFSafariViewController) closes — catches cases where the deep
+    // link fires before the listener is ready.
+    if (browserPlugin) {
+      const p = browserPlugin.addListener('browserFinished', async () => {
+        const { data } = await supabase.auth.getSession();
+        if (!data?.session) {
+          await supabase.auth.refreshSession().catch(() => {});
+        }
+      });
+      listeners.push(p);
+    }
 
     return () => {
-      listenerPromise.then((l) => l.remove()).catch(() => {});
+      listeners.forEach((p) => p.then((l) => l.remove()).catch(() => {}));
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [profileError, setProfileError] = useState(null);
   const profileRetries = useRef(0);

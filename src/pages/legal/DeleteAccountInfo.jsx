@@ -17,7 +17,7 @@ export default function DeleteAccountInfo() {
 
       <h2 style={styles.h2}>If you no longer have access to the app</h2>
       <p style={styles.p}>
-        Email <a href="mailto:support@example.com" style={styles.link}>support@example.com</a> from
+        Email <a href="mailto:emmanuelmusik7@gmail.com" style={styles.link}>emmanuelmusik7@gmail.com</a> from
         the email address associated with your account, with the subject line "Delete my account,"
         and we'll delete your account and all associated data within 30 days.
       </p>

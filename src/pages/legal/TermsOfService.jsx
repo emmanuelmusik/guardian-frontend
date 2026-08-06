@@ -67,7 +67,7 @@ export default function TermsOfService() {
 
       <h2 style={styles.h2}>Contact</h2>
       <p style={styles.p}>
-        Questions about these terms can be sent to <a href="mailto:support@example.com" style={styles.link}>support@example.com</a>.
+        Questions about these terms can be sent to <a href="mailto:emmanuelmusik7@gmail.com" style={styles.link}>emmanuelmusik7@gmail.com</a>.
       </p>
     </div>
   );

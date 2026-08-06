@@ -1,26 +1,26 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase, authRedirectUrl } from '../supabaseClient';
+import { supabase, signInWithProvider } from '../supabaseClient';
 
 export default function Login() {
   const [error, setError] = useState(null);
 
   async function signInWithGoogle() {
     setError(null);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: authRedirectUrl() },
-    });
-    if (error) setError(error.message);
+    try {
+      await signInWithProvider('google');
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   async function signInWithApple() {
     setError(null);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: { redirectTo: authRedirectUrl() },
-    });
-    if (error) setError(error.message);
+    try {
+      await signInWithProvider('apple');
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   return (
