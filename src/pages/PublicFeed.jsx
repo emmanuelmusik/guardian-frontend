@@ -3,6 +3,7 @@ import { apiFetch, apiUpload } from '../api';
 import PageHeader from '../components/PageHeader.jsx';
 import PageIntro from '../components/PageIntro.jsx';
 import UserLink from '../components/UserLink.jsx';
+import ReportModal from '../components/ReportModal.jsx';
 
 const TYPE_GLYPH = { dream: '☾', vision: '✦', intuition: '◈', note: '—' };
 
@@ -15,6 +16,7 @@ export default function PublicFeed({ profile }) {
   const [file, setFile] = useState(null);
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState(null);
+  const [reportingItem, setReportingItem] = useState(null);
 
   useEffect(() => {
     load();
@@ -116,6 +118,9 @@ export default function PublicFeed({ profile }) {
             {item.kind === 'post' && item.user_id === profile?.id && (
               <button onClick={() => deletePost(item.id)} style={styles.deleteLink}>Delete</button>
             )}
+            {item.user_id !== profile?.id && (
+              <button onClick={() => setReportingItem(item)} style={styles.deleteLink}>Report</button>
+            )}
           </div>
           {item.kind === 'entry' && item.title && <h4 style={styles.entryTitle}>{item.title}</h4>}
           <p style={styles.content}>{item.kind === 'entry' ? item.content : item.content}</p>
@@ -130,6 +135,15 @@ export default function PublicFeed({ profile }) {
           )}
         </div>
       ))}
+
+      {reportingItem && (
+        <ReportModal
+          reportedUserId={reportingItem.user_id}
+          contentType={reportingItem.kind === 'post' ? 'public_post' : 'entry'}
+          contentId={reportingItem.id}
+          onClose={() => setReportingItem(null)}
+        />
+      )}
     </div>
   );
 }

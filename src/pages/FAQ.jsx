@@ -52,7 +52,7 @@ const SECTIONS = [
   },
   {
     title: 'Public Page',
-    body: "Share a thought directly, or make one of your journal entries public, and it shows up here for every signed-in Guardian user to see — not connections-only, and not the open internet either. You can attach photos, videos, or audio to what you share here.",
+    body: "Share a thought directly, or make one of your journal entries public, and it shows up here for every signed-in Guardian user to see — not connections-only, and not the open internet either. You can attach photos, videos, or audio to what you share here. Every post from someone else has a Report option, same as elsewhere in Guardian.",
   },
   {
     title: 'Safety',
