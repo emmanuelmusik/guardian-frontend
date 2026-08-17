@@ -116,19 +116,15 @@ export default function MessageThread({ profile }) {
       </div>
 
       <form onSubmit={send} style={styles.form}>
-        {profile?.is_subscriber ? (
-          <label style={styles.attachButton} title="Attach a photo, video, or audio file">
-            📎
-            <input
-              type="file"
-              accept="image/*,video/*,audio/*"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              style={{ display: 'none' }}
-            />
-          </label>
-        ) : (
-          <span style={styles.attachButton} title="Sharing media is a subscriber feature">📎🔒</span>
-        )}
+        <label style={styles.attachButton} title="Attach a photo, video, or audio file">
+          📎
+          <input
+            type="file"
+            accept="image/*,video/*,audio/*"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            style={{ display: 'none' }}
+          />
+        </label>
         <input
           placeholder="Write a message…"
           value={body}

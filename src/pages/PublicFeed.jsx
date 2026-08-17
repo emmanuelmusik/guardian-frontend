@@ -90,14 +90,10 @@ export default function PublicFeed({ profile }) {
           style={styles.textarea}
         />
         <div style={styles.composerRow}>
-          {profile?.is_subscriber ? (
-            <label style={styles.fileButton}>
-              {file ? file.name : '📎 Attach media'}
-              <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} style={{ display: 'none' }} />
-            </label>
-          ) : (
-            <span style={styles.subscriberNote}>Sharing media here is a subscriber feature.</span>
-          )}
+          <label style={styles.fileButton}>
+            {file ? file.name : '📎 Attach media'}
+            <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} style={{ display: 'none' }} />
+          </label>
           <button type="submit" disabled={posting || !thought.trim()} style={styles.postButton}>
             {posting ? 'Posting…' : 'Post'}
           </button>
@@ -154,7 +150,6 @@ const styles = {
     fontSize: 12, color: 'var(--gd-text-dim)', border: '1px dashed var(--gd-line)',
     borderRadius: 8, padding: '8px 12px', cursor: 'pointer',
   },
-  subscriberNote: { fontSize: 12, color: 'var(--gd-text-dim)', fontStyle: 'italic' },
   postButton: {
     background: 'var(--gd-gold)', border: 'none', borderRadius: 8, padding: '9px 20px',
     color: 'var(--gd-on-accent)', fontWeight: 600, fontSize: 14, cursor: 'pointer',
