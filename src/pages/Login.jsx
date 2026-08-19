@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase, signInWithProvider } from '../supabaseClient';
 
-export default function Login() {
+export default function Login({ onGuest }) {
   const [error, setError] = useState(null);
 
   async function signInWithGoogle() {
@@ -43,6 +43,10 @@ export default function Login() {
         <button style={styles.appleButton} onClick={signInWithApple}>
           <AppleIcon />
           Continue with Apple
+        </button>
+
+        <button onClick={onGuest} style={styles.guestLink}>
+          Continue without an account →
         </button>
 
         {error && <p style={styles.error}>{error}</p>}
@@ -166,6 +170,11 @@ const styles = {
     cursor: 'pointer',
     marginTop: 10,
     boxShadow: '0 4px 16px rgba(20,32,44,0.08)',
+  },
+  guestLink: {
+    background: 'transparent', border: 'none', color: 'var(--gd-text-dim)',
+    fontSize: 13, cursor: 'pointer', marginTop: 14, textDecoration: 'underline',
+    width: '100%', textAlign: 'center', padding: 4,
   },
   error: {
     color: 'var(--gd-error)',

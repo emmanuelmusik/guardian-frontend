@@ -10,6 +10,9 @@ import BottomNav from './components/BottomNav.jsx';
 import FloatingCall from './components/FloatingCall.jsx';
 import MiniMusicPlayer from './components/MiniMusicPlayer.jsx';
 import Login from './pages/Login.jsx';
+import GuestJournal from './pages/GuestJournal.jsx';
+import GuestGate from './pages/GuestGate.jsx';
+import { isGuest, enterGuest, exitGuest, listGuestEntries, clearGuestEntries } from './lib/guestStore';
 import Onboarding from './pages/Onboarding.jsx';
 import Journal from './pages/Journal.jsx';
 import Settings from './pages/Settings.jsx';
@@ -35,54 +38,67 @@ import Support from './pages/legal/Support.jsx';
 import DeleteAccountInfo from './pages/legal/DeleteAccountInfo.jsx';
 import PublicFeed from './pages/PublicFeed.jsx';
 
-function Protected({ session, profile, children }) {
+function Protected({ session, profile, children, guest, onLeaveGuest }) {
+  if (!session && guest) return <GuestGate onSignIn={onLeaveGuest} />;
   if (!session) return <Navigate to="/login" />;
   if (!profile?.onboarded || !profile?.username) return <Navigate to="/onboarding" />;
   return children;
 }
 
-function AppRoutes({ session, profile, setProfile }) {
+function AppRoutes({ session, profile, setProfile, guest, onStartGuest, onLeaveGuest }) {
   const location = useLocation();
   const inCall = /^\/communities\/[^/]+\/call$/.test(location.pathname);
-  const showBottomNav = session && profile?.onboarded && profile?.username && !inCall;
+  const showBottomNav = (session && profile?.onboarded && profile?.username && !inCall) || (!session && guest && !inCall);
 
   return (
     <>
       <Routes>
-        <Route path="/login" element={session ? <Navigate to="/" /> : <Login />} />
+        <Route path="/login" element={session ? <Navigate to="/" /> : <Login onGuest={onStartGuest} />} />
         <Route
           path="/onboarding"
           element={
             !session ? <Navigate to="/login" /> : (profile?.onboarded && profile?.username) ? <Navigate to="/" /> : <Onboarding profile={profile} onComplete={setProfile} />
           }
         />
-        <Route path="/" element={<Protected session={session} profile={profile}><Journal session={session} profile={profile} /></Protected>} />
-        <Route path="/admin/materials" element={<Protected session={session} profile={profile}><AdminMaterials profile={profile} /></Protected>} />
-        <Route path="/settings" element={<Protected session={session} profile={profile}><Settings profile={profile} onUpdate={setProfile} /></Protected>} />
-        <Route path="/communities" element={<Protected session={session} profile={profile}><Communities profile={profile} /></Protected>} />
-        <Route path="/communities/:id" element={<Protected session={session} profile={profile}><CommunityDetail profile={profile} /></Protected>} />
-        <Route path="/communities/:id/call" element={<Protected session={session} profile={profile}><CommunityCall /></Protected>} />
-        <Route path="/mentorship" element={<Protected session={session} profile={profile}><Mentorship profile={profile} /></Protected>} />
-        <Route path="/mentor-inbox" element={<Protected session={session} profile={profile}><MentorInbox profile={profile} /></Protected>} />
-        <Route path="/peer-inbox" element={<Protected session={session} profile={profile}><PeerInbox profile={profile} /></Protected>} />
-        <Route path="/bible" element={<Protected session={session} profile={profile}><Bible profile={profile} /></Protected>} />
-        <Route path="/materials" element={<Protected session={session} profile={profile}><Materials profile={profile} /></Protected>} />
-        <Route path="/find-people" element={<Protected session={session} profile={profile}><FindPeople profile={profile} /></Protected>} />
-        <Route path="/faq" element={<Protected session={session} profile={profile}><FAQ profile={profile} /></Protected>} />
-        <Route path="/profile/:id" element={<Protected session={session} profile={profile}><Profile profile={profile} /></Protected>} />
-        <Route path="/messages" element={<Protected session={session} profile={profile}><Messages profile={profile} /></Protected>} />
-        <Route path="/messages/:userId" element={<Protected session={session} profile={profile}><MessageThread profile={profile} /></Protected>} />
-        <Route path="/shared-with-you" element={<Protected session={session} profile={profile}><SharedWithYou profile={profile} /></Protected>} />
-        <Route path="/materials/pdf/:id" element={<Protected session={session} profile={profile}><PdfViewer profile={profile} /></Protected>} />
+        <Route path="/" element={
+          session
+            ? <Protected session={session} profile={profile}><Journal session={session} profile={profile} /></Protected>
+            : guest
+              ? <GuestJournal onSignIn={onLeaveGuest} />
+              : <Navigate to="/login" />
+        } />
+        <Route path="/admin/materials" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><AdminMaterials profile={profile} /></Protected>} />
+        <Route path="/settings" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><Settings profile={profile} onUpdate={setProfile} /></Protected>} />
+        <Route path="/communities" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><Communities profile={profile} /></Protected>} />
+        <Route path="/communities/:id" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><CommunityDetail profile={profile} /></Protected>} />
+        <Route path="/communities/:id/call" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><CommunityCall /></Protected>} />
+        <Route path="/mentorship" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><Mentorship profile={profile} /></Protected>} />
+        <Route path="/mentor-inbox" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><MentorInbox profile={profile} /></Protected>} />
+        <Route path="/peer-inbox" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><PeerInbox profile={profile} /></Protected>} />
+        <Route path="/bible" element={
+          session
+            ? <Protected session={session} profile={profile}><Bible profile={profile} /></Protected>
+            : guest
+              ? <Bible profile={null} />
+              : <Navigate to="/login" />
+        } />
+        <Route path="/materials" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><Materials profile={profile} /></Protected>} />
+        <Route path="/find-people" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><FindPeople profile={profile} /></Protected>} />
+        <Route path="/faq" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><FAQ profile={profile} /></Protected>} />
+        <Route path="/profile/:id" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><Profile profile={profile} /></Protected>} />
+        <Route path="/messages" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><Messages profile={profile} /></Protected>} />
+        <Route path="/messages/:userId" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><MessageThread profile={profile} /></Protected>} />
+        <Route path="/shared-with-you" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><SharedWithYou profile={profile} /></Protected>} />
+        <Route path="/materials/pdf/:id" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><PdfViewer profile={profile} /></Protected>} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/support" element={<Support />} />
         <Route path="/delete-account" element={<DeleteAccountInfo />} />
-        <Route path="/public" element={<Protected session={session} profile={profile}><PublicFeed profile={profile} /></Protected>} />
+        <Route path="/public" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><PublicFeed profile={profile} /></Protected>} />
       </Routes>
       <FloatingCall />
       {!inCall && <MiniMusicPlayer />}
-      {showBottomNav && <BottomNav profile={profile} />}
+      {showBottomNav && <BottomNav profile={profile} guest={!session && guest} onSignIn={onLeaveGuest} />}
     </>
   );
 }
@@ -91,7 +107,51 @@ export default function App() {
   const [session, setSession] = useState(undefined);
   const [profile, setProfile] = useState(undefined);
   const [welcomeMessage, setWelcomeMessage] = useState(null);
+  const [guest, setGuest] = useState(isGuest());
   const justSignedIn = useRef(false);
+
+  function startGuest() {
+    enterGuest();
+    setGuest(true);
+  }
+
+  function leaveGuest() {
+    exitGuest();
+    setGuest(false);
+  }
+
+  // When a guest signs in, move their on-device entries into their real
+  // account, then clear the local copies and the guest flag.
+  useEffect(() => {
+    if (!session) return;
+    const guestEntries = listGuestEntries();
+    if (guestEntries.length === 0) {
+      exitGuest();
+      setGuest(false);
+      return;
+    }
+    (async () => {
+      for (const entry of guestEntries) {
+        try {
+          await apiFetch('/api/entries', {
+            method: 'POST',
+            body: JSON.stringify({
+              type: entry.type,
+              title: entry.title,
+              content: entry.content,
+              visibility: 'private',
+            }),
+          });
+        } catch {
+          // Leave the local copy in place if migration fails — retried next sign-in
+          return;
+        }
+      }
+      clearGuestEntries();
+      exitGuest();
+      setGuest(false);
+    })();
+  }, [session]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -115,24 +175,42 @@ export default function App() {
 
     const listeners = [];
 
-    // Deep link handler — catches the auth-callback URL on both platforms
-    if (appPlugin) {
-      const p = appPlugin.addListener('appUrlOpen', async ({ url }) => {
-        if (!url || !url.startsWith('love.guardian.app://auth-callback')) return;
+    // Handles the auth-callback deep link. Also ALWAYS closes the in-app
+    // browser sheet afterward — leaving it open made the app appear
+    // frozen after sign-in (the session was set behind a sheet that
+    // never dismissed).
+    async function handleAuthUrl(url) {
+      if (!url || !url.startsWith('love.guardian.app://auth-callback')) return;
+      try {
         const codeMatch = url.match(/[?&]code=([^&#]+)/);
         if (codeMatch) {
-          await supabase.auth.exchangeCodeForSession(decodeURIComponent(codeMatch[1])).catch(() => {});
-          return;
+          await supabase.auth.exchangeCodeForSession(decodeURIComponent(codeMatch[1]));
+        } else {
+          const tokenMatch = url.match(/access_token=([^&]+).*refresh_token=([^&]+)/);
+          if (tokenMatch) {
+            await supabase.auth.setSession({
+              access_token: decodeURIComponent(tokenMatch[1]),
+              refresh_token: decodeURIComponent(tokenMatch[2]),
+            });
+          }
         }
-        const tokenMatch = url.match(/access_token=([^&]+).*refresh_token=([^&]+)/);
-        if (tokenMatch) {
-          await supabase.auth.setSession({
-            access_token: decodeURIComponent(tokenMatch[1]),
-            refresh_token: decodeURIComponent(tokenMatch[2]),
-          }).catch(() => {});
-        }
-      });
+      } catch {
+        // Fall through — closing the sheet still matters even on failure
+      }
+      try { await browserPlugin?.close?.(); } catch {}
+    }
+
+    // Deep link handler — catches the auth-callback URL on both platforms
+    if (appPlugin) {
+      const p = appPlugin.addListener('appUrlOpen', ({ url }) => handleAuthUrl(url));
       listeners.push(p);
+
+      // Cold-start case: if the app was launched BY the deep link (e.g.
+      // it was terminated during sign-in), the listener above never
+      // fires — the URL arrives as the launch URL instead.
+      appPlugin.getLaunchUrl?.().then((result) => {
+        if (result?.url) handleAuthUrl(result.url);
+      }).catch(() => {});
     }
 
     // On iOS, also try to refresh the session when the in-app browser
@@ -236,7 +314,7 @@ export default function App() {
         <MusicProvider>
           <Toast message={welcomeMessage} onDismiss={() => setWelcomeMessage(null)} />
           <BrowserRouter>
-            <AppRoutes session={session} profile={profile} setProfile={setProfile} />
+            <AppRoutes session={session} profile={profile} setProfile={setProfile} guest={guest} onStartGuest={startGuest} onLeaveGuest={leaveGuest} />
           </BrowserRouter>
         </MusicProvider>
       </CallProvider>

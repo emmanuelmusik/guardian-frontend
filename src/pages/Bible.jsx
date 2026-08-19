@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../api';
+import { isGuest, createGuestEntry } from '../lib/guestStore';
 import PageHeader from '../components/PageHeader.jsx';
 
 const VERSIONS = [
@@ -100,15 +101,20 @@ export default function Bible({ profile }) {
   async function saveToJournal() {
     setSaving(true);
     try {
-      await apiFetch('/api/entries', {
-        method: 'POST',
-        body: JSON.stringify({
-          type: 'note',
-          title: draftTitle.trim() || null,
-          content: draftText,
-          visibility: 'private',
-        }),
-      });
+      if (isGuest()) {
+        // Guests keep entries on-device — same as their journal
+        createGuestEntry({ type: 'note', title: draftTitle.trim(), content: draftText });
+      } else {
+        await apiFetch('/api/entries', {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'note',
+            title: draftTitle.trim() || null,
+            content: draftText,
+            visibility: 'private',
+          }),
+        });
+      }
       setShowSaveModal(false);
       setPicked(new Set());
       navigate('/');
