@@ -53,7 +53,7 @@ function AppRoutes({ session, profile, setProfile, guest, onStartGuest, onLeaveG
   return (
     <>
       <Routes>
-        <Route path="/login" element={session ? <Navigate to="/" /> : <Login onGuest={onStartGuest} />} />
+        <Route path="/login" element={(session || guest) ? <Navigate to="/" /> : <Login onGuest={onStartGuest} />} />
         <Route
           path="/onboarding"
           element={
