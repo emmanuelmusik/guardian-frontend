@@ -16,6 +16,7 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
   const [communityId, setCommunityId] = useState(communities[0]?.id || '');
   const [personId, setPersonId] = useState('');
   const [listening, setListening] = useState(false);
+  const [voiceError, setVoiceError] = useState(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [saving, setSaving] = useState(false);
   const recognitionRef = useRef(null);
@@ -109,10 +110,29 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
     recognition.start();
   }
 
-  function startRecording() {
+  async function startRecording() {
+    setVoiceError(null);
+
+    // Ask for the microphone FIRST. In the native app's WebView this is
+    // what actually raises the iOS permission prompt — speech APIs alone
+    // don't reliably trigger it, which made "Speak instead" look broken
+    // (tapped, and nothing visibly happened).
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Permission granted — we don't need the raw stream itself
+      stream.getTracks().forEach((t) => t.stop());
+    } catch {
+      setVoiceError(
+        'Microphone access is needed for voice entries. You can allow it in your device Settings under Guardian, or type your entry instead.'
+      );
+      return;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert('Voice input isn\'t supported in this browser. Try Chrome or Safari.');
+      setVoiceError(
+        "Live dictation isn't available on this device yet, so voice entries can't be transcribed here. You can type your entry instead."
+      );
       return;
     }
 
@@ -216,6 +236,8 @@ export default function NewEntryForm({ onCreate, communities = [], connections =
         </div>
       )}
 
+      {voiceError && <p style={styles.voiceError}>{voiceError}</p>}
+
       <div style={styles.row}>
         {!listening && (
           <button type="button" onClick={startRecording} style={styles.iconButton}>
@@ -293,6 +315,11 @@ const styles = {
   iconButtonActive: {
     borderColor: 'var(--gd-gold)',
     color: 'var(--gd-gold)',
+  },
+  voiceError: {
+    fontSize: 12, lineHeight: 1.5, color: 'var(--gd-text-dim)',
+    background: 'var(--gd-void)', border: '1px solid var(--gd-line)',
+    borderRadius: 8, padding: '8px 12px', margin: '0 0 10px',
   },
   recordingBar: {
     display: 'flex',
