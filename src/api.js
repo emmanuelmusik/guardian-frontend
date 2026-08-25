@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient';
+import { supabase, isNativeApp } from './supabaseClient';
 
 const API_BASE = import.meta.env.VITE_API_BASE;
 
@@ -68,6 +68,24 @@ export async function apiFetch(path, options = {}, _isRetry = false) {
 export async function apiDownloadFile(path, filename) {
   const { data } = await supabase.auth.getSession();
   const token = data?.session?.access_token;
+
+  // In the native app, Capacitor's WebView has no download manager —
+  // clicking a synthetic <a download> link (the web approach below)
+  // does nothing visible at all, which is why export "worked in the
+  // browser but not in the app." Instead: open the PDF's real URL in
+  // the same in-app Safari view already used for sign-in (Browser
+  // plugin — already installed, no new native build required). iOS's
+  // built-in PDF viewer takes over from there, with its own native
+  // Share/Save button. The token has to travel as a query param here
+  // since this is a plain navigation, not a fetch() call.
+  if (isNativeApp()) {
+    const Browser = window.Capacitor?.Plugins?.Browser;
+    if (Browser && token) {
+      const url = `${API_BASE}${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+      await Browser.open({ url });
+      return;
+    }
+  }
 
   const response = await fetch(`${API_BASE}${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
