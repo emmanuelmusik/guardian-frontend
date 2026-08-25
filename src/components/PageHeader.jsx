@@ -52,6 +52,7 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     padding: '20px 24px',
+    paddingTop: 'calc(20px + env(safe-area-inset-top, 0px))',
     background: 'var(--gd-void)',
     borderBottom: '1px solid var(--gd-line)',
     transition: 'transform 200ms ease',

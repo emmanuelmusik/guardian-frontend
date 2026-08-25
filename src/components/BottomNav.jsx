@@ -61,6 +61,7 @@ const styles = {
     justifyContent: 'space-around',
     alignItems: 'center',
     height: 58,
+    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     background: 'var(--gd-surface)',
     borderTop: '1px solid var(--gd-line)',
     maxWidth: 640,
