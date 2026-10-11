@@ -55,11 +55,14 @@ export default function MessageThread({ profile }) {
   const [forwardFor, setForwardFor] = useState(null);
   const [connections, setConnections] = useState(null);
 
+  const [drag, setDrag] = useState({ id: null, dx: 0 });
+
   const bottomRef = useRef(null);
   const channelRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const theirTypingTimeoutRef = useRef(null);
   const longPressRef = useRef(null);
+  const dragStartRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -248,6 +251,40 @@ export default function MessageThread({ profile }) {
     clearTimeout(longPressRef.current);
   }
 
+  const SWIPE_REPLY_THRESHOLD = 56;
+  const SWIPE_MAX = 72;
+
+  function handleDragStart(e, messageId) {
+    startLongPress(messageId);
+    dragStartRef.current = { x: e.clientX, y: e.clientY, id: messageId };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  }
+
+  function handleDragMove(e, messageId) {
+    const start = dragStartRef.current;
+    if (!start || start.id !== messageId) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    // Only swipe-right counts as a reply gesture; anything that isn't a
+    // clearly horizontal rightward drag is left alone (vertical scroll,
+    // left swipe, a tap that barely moved).
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) cancelLongPress();
+    if (dx > 8 && Math.abs(dx) > Math.abs(dy)) {
+      setDrag({ id: messageId, dx: Math.min(dx - 8, SWIPE_MAX) });
+    }
+  }
+
+  function handleDragEnd(e, message) {
+    cancelLongPress();
+    const start = dragStartRef.current;
+    const wasThisMessage = start?.id === message.id;
+    dragStartRef.current = null;
+    setDrag({ id: null, dx: 0 });
+    if (wasThisMessage && drag.id === message.id && drag.dx >= SWIPE_REPLY_THRESHOLD) {
+      startReply(message);
+    }
+  }
+
   async function react(messageId, emoji) {
     const msg = messages.find((m) => m.id === messageId);
     const already = (msg?.reactions || []).find((r) => r.user_id === profile.id && r.emoji === emoji);
@@ -361,15 +398,35 @@ export default function MessageThread({ profile }) {
           const reactionCounts = {};
           (m.reactions || []).forEach((r) => { reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1; });
 
+          const dragDx = drag.id === m.id ? drag.dx : 0;
+
           return (
             <div key={m.id} style={{ ...styles.bubbleRow, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
               <div style={{ position: 'relative' }}>
+                {dragDx > 0 && (
+                  <span
+                    style={{
+                      ...styles.swipeReplyIcon,
+                      opacity: Math.min(1, dragDx / SWIPE_REPLY_THRESHOLD),
+                      transform: `scale(${0.6 + 0.4 * Math.min(1, dragDx / SWIPE_REPLY_THRESHOLD)})`,
+                    }}
+                  >
+                    ↩
+                  </span>
+                )}
                 <div
-                  style={{ ...styles.bubble, ...(mine ? styles.bubbleMine : styles.bubbleTheirs) }}
+                  style={{
+                    ...styles.bubble,
+                    ...(mine ? styles.bubbleMine : styles.bubbleTheirs),
+                    transform: `translateX(${dragDx}px)`,
+                    transition: dragDx ? 'none' : 'transform 150ms ease-out',
+                    touchAction: 'pan-y',
+                  }}
                   onContextMenu={(e) => { e.preventDefault(); setMenuFor(m.id); }}
-                  onPointerDown={() => startLongPress(m.id)}
-                  onPointerUp={cancelLongPress}
-                  onPointerLeave={cancelLongPress}
+                  onPointerDown={(e) => handleDragStart(e, m.id)}
+                  onPointerMove={(e) => handleDragMove(e, m.id)}
+                  onPointerUp={(e) => handleDragEnd(e, m)}
+                  onPointerLeave={(e) => handleDragEnd(e, m)}
                 >
                   {m.forwarded_from_message_id && <div style={styles.forwardedTag}>↪ Forwarded</div>}
                   {m.reply_to && (
@@ -528,6 +585,10 @@ const styles = {
   reactionPill: {
     fontSize: 12, background: 'var(--gd-surface)', border: '1px solid var(--gd-line)', borderRadius: 12,
     padding: '2px 8px', cursor: 'pointer',
+  },
+  swipeReplyIcon: {
+    position: 'absolute', left: -24, top: '50%', transform: 'translateY(-50%)',
+    fontSize: 18, color: 'var(--gd-text-dim)', pointerEvents: 'none',
   },
   menu: {
     position: 'absolute', top: '100%', marginTop: 4, background: 'var(--gd-surface)', border: '1px solid var(--gd-line)',
