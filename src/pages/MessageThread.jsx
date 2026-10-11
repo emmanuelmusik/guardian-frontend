@@ -654,6 +654,12 @@ const styles = {
   bubble: {
     maxWidth: '78%', padding: '6px 7px 6px 8px', borderRadius: 10, fontSize: 14.5, lineHeight: 1.35, cursor: 'pointer',
     boxShadow: '0 1px 1px rgba(0,0,0,0.06)', position: 'relative',
+    // Without this, starting the swipe directly on the message text
+    // triggers the browser's native text-selection/callout gesture instead
+    // of our pointer handlers, which is why it only worked from the
+    // padding around the edges. This makes the whole bubble one
+    // consistent drag surface.
+    userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none',
   },
   bubbleMine: { background: 'var(--gd-lavender)', color: 'var(--gd-on-accent)', borderBottomRightRadius: 2 },
   bubbleTheirs: {
