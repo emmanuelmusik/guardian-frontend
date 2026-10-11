@@ -56,6 +56,7 @@ export default function MessageThread({ profile }) {
   const [connections, setConnections] = useState(null);
 
   const [drag, setDrag] = useState({ id: null, dx: 0 });
+  const [burstId, setBurstId] = useState(null);
 
   const bottomRef = useRef(null);
   const channelRef = useRef(null);
@@ -63,6 +64,7 @@ export default function MessageThread({ profile }) {
   const theirTypingTimeoutRef = useRef(null);
   const longPressRef = useRef(null);
   const dragStartRef = useRef(null);
+  const lastTapRef = useRef({ id: null, time: 0 });
 
   useEffect(() => {
     let cancelled = false;
@@ -278,10 +280,37 @@ export default function MessageThread({ profile }) {
     cancelLongPress();
     const start = dragStartRef.current;
     const wasThisMessage = start?.id === message.id;
+    const thisDragDx = drag.id === message.id ? drag.dx : 0;
     dragStartRef.current = null;
     setDrag({ id: null, dx: 0 });
-    if (wasThisMessage && drag.id === message.id && drag.dx >= SWIPE_REPLY_THRESHOLD) {
+
+    if (wasThisMessage && thisDragDx >= SWIPE_REPLY_THRESHOLD) {
       startReply(message);
+      lastTapRef.current = { id: null, time: 0 };
+      return;
+    }
+
+    // A plain tap (no real drag) within 300ms of the previous tap on the
+    // same bubble is a double-tap — WhatsApp/Instagram's quick-like
+    // gesture. Anything that moved is a drag, not a tap, so it's ignored.
+    if (wasThisMessage && thisDragDx < 8) {
+      const now = Date.now();
+      const last = lastTapRef.current;
+      if (last.id === message.id && now - last.time < 300) {
+        likeMessage(message);
+        lastTapRef.current = { id: null, time: 0 };
+      } else {
+        lastTapRef.current = { id: message.id, time: now };
+      }
+    }
+  }
+
+  function likeMessage(message) {
+    const alreadyLiked = (message.reactions || []).some((r) => r.user_id === profile.id && r.emoji === '❤️');
+    react(message.id, '❤️');
+    if (!alreadyLiked) {
+      setBurstId(message.id);
+      setTimeout(() => setBurstId((cur) => (cur === message.id ? null : cur)), 650);
     }
   }
 
@@ -374,6 +403,13 @@ export default function MessageThread({ profile }) {
 
   return (
     <div style={styles.page}>
+      <style>{`
+        @keyframes guardianHeartBurst {
+          0% { transform: scale(0.4); opacity: 0; }
+          35% { transform: scale(1.25); opacity: 1; }
+          100% { transform: scale(1.5); opacity: 0; }
+        }
+      `}</style>
       <PageHeader
         title={person ? <Link to={`/profile/${person.id}`} style={styles.nameLink}>{person.display_name}</Link> : 'Messages'}
         profile={profile}
@@ -428,6 +464,7 @@ export default function MessageThread({ profile }) {
                   onPointerUp={(e) => handleDragEnd(e, m)}
                   onPointerLeave={(e) => handleDragEnd(e, m)}
                 >
+                  {burstId === m.id && <span style={styles.heartBurst}>❤️</span>}
                   {m.forwarded_from_message_id && <div style={styles.forwardedTag}>↪ Forwarded</div>}
                   {m.reply_to && (
                     <div style={styles.replyPreview}>
@@ -564,27 +601,35 @@ const styles = {
     border: '1px solid var(--gd-line)', borderRadius: 10, padding: '8px 12px', marginBottom: 12,
   },
   pinnedText: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  thread: { display: 'flex', flexDirection: 'column', gap: 14, minHeight: 200 },
+  thread: { display: 'flex', flexDirection: 'column', gap: 3, minHeight: 200 },
   bubbleRow: { display: 'flex' },
   bubble: {
-    maxWidth: '75%', padding: '10px 14px', borderRadius: 16, fontSize: 14, lineHeight: 1.5, cursor: 'pointer',
+    maxWidth: '78%', padding: '7px 9px 6px', borderRadius: 10, fontSize: 14.5, lineHeight: 1.35, cursor: 'pointer',
+    boxShadow: '0 1px 1px rgba(0,0,0,0.06)', position: 'relative',
   },
-  bubbleMine: { background: 'var(--gd-gold)', color: 'var(--gd-on-accent)', borderBottomRightRadius: 4 },
+  bubbleMine: { background: 'var(--gd-gold)', color: 'var(--gd-on-accent)', borderBottomRightRadius: 2 },
   bubbleTheirs: {
-    background: 'var(--gd-surface)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)', borderBottomLeftRadius: 4,
+    background: 'var(--gd-surface)', color: 'var(--gd-text)', borderBottomLeftRadius: 2,
   },
-  forwardedTag: { fontSize: 11, opacity: 0.7, fontStyle: 'italic', marginBottom: 4 },
+  forwardedTag: { fontSize: 11, opacity: 0.7, fontStyle: 'italic', marginBottom: 2 },
   replyPreview: {
-    fontSize: 12, opacity: 0.8, borderLeft: '2px solid currentColor', paddingLeft: 8, marginBottom: 6,
+    fontSize: 12, opacity: 0.8, borderLeft: '2px solid currentColor', paddingLeft: 6, marginBottom: 3,
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%',
   },
   deletedText: { fontStyle: 'italic', opacity: 0.7 },
-  meta: { display: 'flex', gap: 4, alignItems: 'center', fontSize: 11, opacity: 0.75, marginTop: 4 },
-  tick: { fontSize: 12 },
-  reactionRow: { display: 'flex', gap: 4, marginTop: 4 },
+  meta: {
+    display: 'flex', gap: 3, alignItems: 'center', fontSize: 10.5, opacity: 0.7, marginTop: 2,
+  },
+  tick: { fontSize: 12, lineHeight: 1 },
+  reactionRow: { display: 'flex', gap: 4, marginTop: 2 },
   reactionPill: {
     fontSize: 12, background: 'var(--gd-surface)', border: '1px solid var(--gd-line)', borderRadius: 12,
-    padding: '2px 8px', cursor: 'pointer',
+    padding: '2px 8px', cursor: 'pointer', boxShadow: '0 1px 1px rgba(0,0,0,0.06)',
+  },
+  heartBurst: {
+    position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: 46, pointerEvents: 'none', animation: 'guardianHeartBurst 650ms ease-out forwards',
+    textShadow: '0 2px 6px rgba(0,0,0,0.25)',
   },
   swipeReplyIcon: {
     position: 'absolute', left: -24, top: '50%', transform: 'translateY(-50%)',
