@@ -644,7 +644,7 @@ const styles = {
     maxWidth: '78%', padding: '6px 7px 6px 8px', borderRadius: 10, fontSize: 14.5, lineHeight: 1.35, cursor: 'pointer',
     boxShadow: '0 1px 1px rgba(0,0,0,0.06)', position: 'relative',
   },
-  bubbleMine: { background: 'var(--gd-gold-soft)', color: 'var(--gd-on-accent)', borderBottomRightRadius: 2 },
+  bubbleMine: { background: 'var(--gd-lavender)', color: 'var(--gd-on-accent)', borderBottomRightRadius: 2 },
   bubbleTheirs: {
     background: 'var(--gd-surface)', color: 'var(--gd-text)', borderBottomLeftRadius: 2,
   },

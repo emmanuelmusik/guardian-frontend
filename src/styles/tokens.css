@@ -8,7 +8,7 @@
   --gd-text-dim: #5b7387;    /* secondary text */
   --gd-gold: #e8a33d;        /* sun accent — primary actions */
   --gd-gold-dim: #c98826;
-  --gd-gold-soft: #f6dcae;   /* muted tint of the sun accent — chat bubbles, anywhere the full gold reads too strong */
+  --gd-lavender: #e5e5fa;    /* sent-message bubble background */
   --gd-violet: #3b6ea5;      /* deeper sky blue — mentor/community tags */
   --gd-error: #d64545;
   --gd-on-accent: #14202c;   /* text placed on top of the gold accent */
