@@ -278,9 +278,20 @@ export default function MessageThread({ profile }) {
     const dy = e.clientY - start.y;
     const directional = mine ? -rawDx : rawDx; // leftward counts as progress for mine, rightward for theirs
     if (Math.abs(rawDx) > 8 || Math.abs(dy) > 8) cancelLongPress();
-    if (directional > 8 && Math.abs(rawDx) > Math.abs(dy)) {
-      setDrag({ id: messageId, dx: Math.min(directional - 8, SWIPE_MAX) });
-    }
+    // Always re-derive progress from the current finger position (instead
+    // of only ever increasing it) so swiping back toward the start — or
+    // swiping the wrong way, or dragging mostly vertically — properly
+    // relaxes the bubble back to 0 instead of leaving it stuck wherever it
+    // last was, which is what made the gesture feel unreliable.
+    const horizontal = Math.abs(rawDx) > Math.abs(dy);
+    const progress = horizontal ? Math.max(0, directional - 8) : 0;
+    setDrag({ id: messageId, dx: Math.min(progress, SWIPE_MAX) });
+  }
+
+  function cancelDrag() {
+    cancelLongPress();
+    dragStartRef.current = null;
+    setDrag({ id: null, dx: 0 });
   }
 
   function handleDragEnd(e, message) {
@@ -484,7 +495,7 @@ export default function MessageThread({ profile }) {
                   onPointerDown={(e) => handleDragStart(e, m.id)}
                   onPointerMove={(e) => handleDragMove(e, m.id, mine)}
                   onPointerUp={(e) => handleDragEnd(e, m)}
-                  onPointerLeave={(e) => handleDragEnd(e, m)}
+                  onPointerCancel={cancelDrag}
                 >
                   {burstId === m.id && <span style={styles.heartBurst}>❤️</span>}
                   {m.forwarded_from_message_id && <div style={styles.forwardedTag}>↪ Forwarded</div>}
