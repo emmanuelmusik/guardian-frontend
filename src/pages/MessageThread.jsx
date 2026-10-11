@@ -1,9 +1,18 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiFetch, apiUpload } from '../api';
+import { supabase } from '../supabaseClient';
+import { getDraft, setDraft, clearDraft } from '../lib/messageDrafts';
+import { formatMessageTime } from '../lib/relativeTime';
+import { formatMessageText } from '../lib/formatText';
+import VoiceRecorder from '../components/VoiceRecorder.jsx';
+import VoiceNotePlayer from '../components/VoiceNotePlayer.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 
-function DmAttachment({ path, type }) {
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
+const REACTION_CHOICES = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+function DmAttachment({ path, type, meta }) {
   const [url, setUrl] = useState(null);
 
   useEffect(() => {
@@ -17,50 +26,162 @@ function DmAttachment({ path, type }) {
   if (!url) return <p style={{ fontSize: 12, opacity: 0.7, margin: '4px 0 0' }}>Loading attachment…</p>;
   if (type === 'image') return <img src={url} alt="" style={{ maxWidth: '100%', borderRadius: 8, marginTop: 6, display: 'block' }} />;
   if (type === 'video') return <video src={url} controls style={{ maxWidth: '100%', borderRadius: 8, marginTop: 6, display: 'block' }} />;
+  if (type === 'voice_note') return <div style={{ marginTop: 6 }}><VoiceNotePlayer url={url} duration={meta?.duration} waveform={meta?.waveform} /></div>;
   if (type === 'audio') return <audio src={url} controls style={{ width: '100%', marginTop: 6 }} />;
   return null;
+}
+
+// Single gray tick: sent. Double gray: delivered. Double blue: read.
+function Ticks({ status }) {
+  if (!status || status === 'sent') return <span style={styles.tick}>✓</span>;
+  const blue = status === 'read';
+  return <span style={{ ...styles.tick, color: blue ? '#34b7f1' : 'inherit' }}>✓✓</span>;
 }
 
 export default function MessageThread({ profile }) {
   const { userId } = useParams();
   const [person, setPerson] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [body, setBody] = useState('');
+  const [body, setBody] = useState(() => getDraft(userId));
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
+  const [theirTyping, setTheirTyping] = useState(false);
+  const [theirOnline, setTheirOnline] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [menuFor, setMenuFor] = useState(null);
+  const [forwardFor, setForwardFor] = useState(null);
+  const [connections, setConnections] = useState(null);
+
   const bottomRef = useRef(null);
+  const channelRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+  const theirTypingTimeoutRef = useRef(null);
+  const longPressRef = useRef(null);
 
   useEffect(() => {
-    load();
-    const interval = setInterval(load, 6000);
-    return () => clearInterval(interval);
-  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([
+      apiFetch(`/api/users/${userId}`),
+      apiFetch(`/api/messages/with/${userId}`),
+    ])
+      .then(([p, m]) => {
+        if (cancelled) return;
+        setPerson(p);
+        setMessages(m);
+        setError(null);
+      })
+      .catch((err) => { if (!cancelled) setError(err.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  useEffect(() => {
+    setBody(getDraft(userId));
+    setReplyTo(null);
+    setEditingId(null);
+  }, [userId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
-  async function load() {
-    try {
-      const [p, m] = await Promise.all([
-        apiFetch(`/api/users/${userId}`),
-        apiFetch(`/api/messages/with/${userId}`),
-      ]);
-      setPerson(p);
-      setMessages(m);
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+  // Realtime: new/edited/deleted messages, reactions, pins, typing, presence.
+  useEffect(() => {
+    if (!profile?.id) return;
+    const pairKey = [profile.id, userId].sort().join('-');
+    const channel = supabase.channel(`dm-${pairKey}`, {
+      config: { presence: { key: profile.id } },
+    });
+    channelRef.current = channel;
+
+    const belongsHere = (m) => (m.sender_id === userId && m.recipient_id === profile.id) ||
+      (m.sender_id === profile.id && m.recipient_id === userId);
+
+    channel
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages' }, (payload) => {
+        const m = payload.new;
+        if (!belongsHere(m)) return;
+        setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+        if (m.recipient_id === profile.id) {
+          apiFetch(`/api/messages/with/${userId}/read`, { method: 'PATCH' }).catch(() => {});
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages' }, (payload) => {
+        const m = payload.new;
+        if (!belongsHere(m)) return;
+        setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...x, ...m } : x)));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, () => {
+        refreshQuietly();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pinned_messages' }, () => {
+        refreshQuietly();
+      })
+      .on('broadcast', { event: 'typing' }, ({ payload }) => {
+        if (payload?.userId !== userId) return;
+        setTheirTyping(true);
+        clearTimeout(theirTypingTimeoutRef.current);
+        theirTypingTimeoutRef.current = setTimeout(() => setTheirTyping(false), 3000);
+      })
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        setTheirOnline(Boolean(state[userId]?.length));
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') channel.track({ online: true });
+      });
+
+    return () => {
+      clearTimeout(theirTypingTimeoutRef.current);
+      supabase.removeChannel(channel);
+      channelRef.current = null;
+    };
+  }, [profile?.id, userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reactions/pins don't carry their full payload over broadcast, so on
+  // that signal we just re-fetch the thread quietly (no loading spinner).
+  function refreshQuietly() {
+    apiFetch(`/api/messages/with/${userId}`).then(setMessages).catch(() => {});
+  }
+
+  const broadcastTyping = useCallback(() => {
+    channelRef.current?.send({ type: 'broadcast', event: 'typing', payload: { userId: profile.id } });
+  }, [profile?.id]);
+
+  function handleBodyChange(e) {
+    const value = e.target.value;
+    setBody(value);
+    if (!editingId) setDraft(userId, value); // don't let edit-in-progress text overwrite the real draft
+    if (!typingTimeoutRef.current) {
+      broadcastTyping();
+      typingTimeoutRef.current = setTimeout(() => { typingTimeoutRef.current = null; }, 1000);
     }
   }
 
   async function send(e) {
     e.preventDefault();
     if (!body.trim() && !file) return;
+
+    if (editingId) {
+      try {
+        const updated = await apiFetch(`/api/messages/${editingId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ body: body.trim() }),
+        });
+        setMessages((prev) => prev.map((x) => (x.id === updated.id ? { ...x, ...updated } : x)));
+        setEditingId(null);
+        setBody('');
+        clearDraft(userId);
+      } catch (err) {
+        setError(err.message);
+      }
+      return;
+    }
+
     setSending(true);
     setError(null);
     try {
@@ -73,17 +194,144 @@ export default function MessageThread({ profile }) {
       }
       const created = await apiFetch(`/api/messages/with/${userId}`, {
         method: 'POST',
-        body: JSON.stringify({ body: body.trim(), attachment_path, attachment_type }),
+        body: JSON.stringify({
+          body: body.trim(),
+          attachment_path,
+          attachment_type,
+          reply_to_message_id: replyTo?.id || null,
+        }),
       });
-      setMessages((prev) => [...prev, created]);
+      setMessages((prev) => (prev.some((x) => x.id === created.id) ? prev : [...prev, created]));
       setBody('');
+      clearDraft(userId);
       setFile(null);
+      setReplyTo(null);
     } catch (err) {
       setError(err.message);
     } finally {
       setSending(false);
     }
   }
+
+  async function sendVoiceNote({ blob, duration, waveform }) {
+    setSending(true);
+    setError(null);
+    try {
+      const uploaded = await apiUpload(`/api/messages/with/${userId}/media`, blob, {
+        filename: 'voice-note.webm',
+        extraFields: { kind: 'voice_note', duration: String(duration), waveform: JSON.stringify(waveform) },
+      });
+      const created = await apiFetch(`/api/messages/with/${userId}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          body: '',
+          attachment_path: uploaded.attachment_path,
+          attachment_type: uploaded.attachment_type,
+          media_meta: uploaded.media_meta,
+          reply_to_message_id: replyTo?.id || null,
+        }),
+      });
+      setMessages((prev) => (prev.some((x) => x.id === created.id) ? prev : [...prev, created]));
+      setReplyTo(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function startLongPress(messageId) {
+    clearTimeout(longPressRef.current);
+    longPressRef.current = setTimeout(() => setMenuFor(messageId), 450);
+  }
+  function cancelLongPress() {
+    clearTimeout(longPressRef.current);
+  }
+
+  async function react(messageId, emoji) {
+    const msg = messages.find((m) => m.id === messageId);
+    const already = (msg?.reactions || []).find((r) => r.user_id === profile.id && r.emoji === emoji);
+    try {
+      if (already) await apiFetch(`/api/messages/${messageId}/react`, { method: 'DELETE' });
+      else await apiFetch(`/api/messages/${messageId}/react`, { method: 'POST', body: JSON.stringify({ emoji }) });
+      refreshQuietly();
+    } catch (err) {
+      setError(err.message);
+    }
+    setMenuFor(null);
+  }
+
+  function startReply(message) {
+    setReplyTo(message);
+    setEditingId(null);
+    setMenuFor(null);
+  }
+
+  function startEdit(message) {
+    setEditingId(message.id);
+    setBody(message.body || '');
+    setReplyTo(null);
+    setMenuFor(null);
+  }
+
+  async function deleteMessage(messageId, scope) {
+    try {
+      await apiFetch(`/api/messages/${messageId}?scope=${scope}`, { method: 'DELETE' });
+      if (scope === 'me') setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      else refreshQuietly();
+    } catch (err) {
+      setError(err.message);
+    }
+    setMenuFor(null);
+  }
+
+  async function togglePin(message) {
+    try {
+      if (message.pinned) await apiFetch(`/api/messages/${message.id}/pin`, { method: 'DELETE' });
+      else await apiFetch(`/api/messages/${message.id}/pin`, { method: 'POST' });
+      refreshQuietly();
+    } catch (err) {
+      setError(err.message);
+    }
+    setMenuFor(null);
+  }
+
+  async function toggleStar(message) {
+    try {
+      if (message.starred) await apiFetch(`/api/messages/${message.id}/star`, { method: 'DELETE' });
+      else await apiFetch(`/api/messages/${message.id}/star`, { method: 'POST' });
+      refreshQuietly();
+    } catch (err) {
+      setError(err.message);
+    }
+    setMenuFor(null);
+  }
+
+  async function openForward(message) {
+    setForwardFor(message);
+    setMenuFor(null);
+    if (!connections) {
+      try {
+        const list = await apiFetch('/api/messages/connections');
+        setConnections(list.filter((c) => c.id !== profile.id));
+      } catch {
+        setConnections([]);
+      }
+    }
+  }
+
+  async function forwardTo(toUserId) {
+    if (!forwardFor) return;
+    try {
+      await apiFetch(`/api/messages/${forwardFor.id}/forward`, { method: 'POST', body: JSON.stringify({ toUserId }) });
+      setForwardFor(null);
+      if (toUserId === userId) refreshQuietly();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  const pinnedMessage = useMemo(() => messages.find((m) => m.pinned), [messages]);
 
   if (loading) return <div style={styles.page}><p style={styles.dim}>Loading…</p></div>;
 
@@ -94,26 +342,109 @@ export default function MessageThread({ profile }) {
         profile={profile}
       />
       <Link to="/messages" style={styles.back}>← Back to messages</Link>
+      <p style={styles.presenceLine}>
+        {theirTyping ? 'Typing…' : theirOnline ? 'Online' : null}
+      </p>
+
+      {pinnedMessage && (
+        <div style={styles.pinnedBanner}>
+          📌 <span style={styles.pinnedText}>{pinnedMessage.deleted_for_everyone ? 'This message was deleted' : (pinnedMessage.body || 'Media message')}</span>
+        </div>
+      )}
 
       {error && <p style={styles.errorText}>{error}</p>}
 
       <div style={styles.thread}>
-        {messages.map((m) => (
-          <div
-            key={m.id}
-            style={{
-              ...styles.bubbleRow,
-              justifyContent: m.sender_id === profile.id ? 'flex-end' : 'flex-start',
-            }}
-          >
-            <div style={{ ...styles.bubble, ...(m.sender_id === profile.id ? styles.bubbleMine : styles.bubbleTheirs) }}>
-              {m.body}
-              {m.attachment_path && <DmAttachment path={m.attachment_path} type={m.attachment_type} />}
+        {messages.map((m) => {
+          const mine = m.sender_id === profile.id;
+          const canEdit = mine && !m.deleted_for_everyone && (Date.now() - new Date(m.created_at).getTime() < EDIT_WINDOW_MS);
+          const reactionCounts = {};
+          (m.reactions || []).forEach((r) => { reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1; });
+
+          return (
+            <div key={m.id} style={{ ...styles.bubbleRow, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+              <div style={{ position: 'relative' }}>
+                <div
+                  style={{ ...styles.bubble, ...(mine ? styles.bubbleMine : styles.bubbleTheirs) }}
+                  onContextMenu={(e) => { e.preventDefault(); setMenuFor(m.id); }}
+                  onPointerDown={() => startLongPress(m.id)}
+                  onPointerUp={cancelLongPress}
+                  onPointerLeave={cancelLongPress}
+                >
+                  {m.forwarded_from_message_id && <div style={styles.forwardedTag}>↪ Forwarded</div>}
+                  {m.reply_to && (
+                    <div style={styles.replyPreview}>
+                      {m.reply_to.deleted ? 'This message was deleted' : (m.reply_to.body || 'Media message')}
+                    </div>
+                  )}
+
+                  {m.deleted_for_everyone ? (
+                    <span style={styles.deletedText}>This message was deleted</span>
+                  ) : (
+                    <>
+                      {m.body && <span>{formatMessageText(m.body)}</span>}
+                      {m.attachment_path && <DmAttachment path={m.attachment_path} type={m.attachment_type} meta={m.media_meta} />}
+                    </>
+                  )}
+
+                  <div style={{ ...styles.meta, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                    {m.starred && <span title="Starred">⭐</span>}
+                    {m.edited_at && !m.deleted_for_everyone && <span>Edited</span>}
+                    <span>{formatMessageTime(m.created_at)}</span>
+                    {mine && <Ticks status={m.status} />}
+                  </div>
+                </div>
+
+                {Object.keys(reactionCounts).length > 0 && (
+                  <div style={{ ...styles.reactionRow, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                    {Object.entries(reactionCounts).map(([emoji, count]) => (
+                      <button key={emoji} type="button" onClick={() => react(m.id, emoji)} style={styles.reactionPill}>
+                        {emoji} {count > 1 ? count : ''}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {menuFor === m.id && (
+                  <div style={{ ...styles.menu, [mine ? 'right' : 'left']: 0 }}>
+                    <div style={styles.emojiRow}>
+                      {REACTION_CHOICES.map((emoji) => (
+                        <button key={emoji} type="button" onClick={() => react(m.id, emoji)} style={styles.emojiButton}>{emoji}</button>
+                      ))}
+                    </div>
+                    <button type="button" style={styles.menuItem} onClick={() => startReply(m)}>Reply</button>
+                    <button type="button" style={styles.menuItem} onClick={() => openForward(m)}>Forward</button>
+                    <button type="button" style={styles.menuItem} onClick={() => toggleStar(m)}>{m.starred ? 'Unstar' : 'Star'}</button>
+                    <button type="button" style={styles.menuItem} onClick={() => togglePin(m)}>{m.pinned ? 'Unpin' : 'Pin'}</button>
+                    {canEdit && <button type="button" style={styles.menuItem} onClick={() => startEdit(m)}>Edit</button>}
+                    <button type="button" style={styles.menuItem} onClick={() => deleteMessage(m.id, 'me')}>Delete for me</button>
+                    {mine && !m.deleted_for_everyone && (
+                      <button type="button" style={{ ...styles.menuItem, color: 'var(--gd-error)' }} onClick={() => deleteMessage(m.id, 'everyone')}>Delete for everyone</button>
+                    )}
+                    <button type="button" style={styles.menuItem} onClick={() => setMenuFor(null)}>Close</button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={bottomRef} />
       </div>
+
+      {replyTo && (
+        <div style={styles.composerReply}>
+          <div style={styles.composerReplyText}>
+            Replying to: {replyTo.deleted_for_everyone ? 'This message was deleted' : (replyTo.body || 'Media message')}
+          </div>
+          <button type="button" onClick={() => setReplyTo(null)} style={styles.clearFile}>✕</button>
+        </div>
+      )}
+      {editingId && (
+        <div style={styles.composerReply}>
+          <div style={styles.composerReplyText}>Editing message</div>
+          <button type="button" onClick={() => { setEditingId(null); setBody(''); }} style={styles.clearFile}>✕</button>
+        </div>
+      )}
 
       <form onSubmit={send} style={styles.form}>
         <label style={styles.attachButton} title="Attach a photo, video, or audio file">
@@ -126,16 +457,42 @@ export default function MessageThread({ profile }) {
           />
         </label>
         <input
-          placeholder="Write a message…"
+          placeholder={editingId ? 'Edit your message…' : 'Write a message… (*bold* _italic_ ~strike~)'}
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={handleBodyChange}
           style={styles.input}
         />
-        <button type="submit" disabled={sending || (!body.trim() && !file)} style={styles.send}>
-          {sending ? '…' : 'Send'}
-        </button>
+        {!body.trim() && !file && !editingId ? (
+          <VoiceRecorder onRecorded={sendVoiceNote} onCancel={(msg) => msg && setError(msg)} />
+        ) : (
+          <button type="submit" disabled={sending || (!body.trim() && !file)} style={styles.send}>
+            {sending ? '…' : editingId ? 'Save' : 'Send'}
+          </button>
+        )}
       </form>
       {file && <p style={styles.filePreview}>Attaching: {file.name} <button type="button" onClick={() => setFile(null)} style={styles.clearFile}>✕</button></p>}
+
+      {forwardFor && (
+        <div style={styles.modalOverlay} onClick={() => setForwardFor(null)}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <h3 style={styles.modalTitle}>Forward message</h3>
+            {!connections ? (
+              <p style={styles.dim}>Loading…</p>
+            ) : connections.length === 0 ? (
+              <p style={styles.dim}>No connections to forward to.</p>
+            ) : (
+              <div style={styles.modalList}>
+                {connections.map((c) => (
+                  <button key={c.id} type="button" style={styles.modalListItem} onClick={() => forwardTo(c.id)}>
+                    {c.display_name || c.username}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button type="button" style={styles.modalClose} onClick={() => setForwardFor(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -143,18 +500,52 @@ export default function MessageThread({ profile }) {
 const styles = {
   page: { maxWidth: 640, margin: '0 auto', padding: '48px 24px 100px' },
   nameLink: { color: 'inherit', textDecoration: 'none' },
-  back: { display: 'inline-block', color: 'var(--gd-text-dim)', fontSize: 13, textDecoration: 'none', marginBottom: 20 },
-  thread: { display: 'flex', flexDirection: 'column', gap: 8, minHeight: 200 },
+  back: { display: 'inline-block', color: 'var(--gd-text-dim)', fontSize: 13, textDecoration: 'none', marginBottom: 4 },
+  presenceLine: { fontSize: 12, color: 'var(--gd-text-dim)', minHeight: 16, margin: '0 0 8px' },
+  pinnedBanner: {
+    display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, background: 'var(--gd-surface)',
+    border: '1px solid var(--gd-line)', borderRadius: 10, padding: '8px 12px', marginBottom: 12,
+  },
+  pinnedText: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  thread: { display: 'flex', flexDirection: 'column', gap: 14, minHeight: 200 },
   bubbleRow: { display: 'flex' },
   bubble: {
-    maxWidth: '75%', padding: '10px 14px', borderRadius: 16, fontSize: 14, lineHeight: 1.5,
+    maxWidth: '75%', padding: '10px 14px', borderRadius: 16, fontSize: 14, lineHeight: 1.5, cursor: 'pointer',
   },
   bubbleMine: { background: 'var(--gd-gold)', color: 'var(--gd-on-accent)', borderBottomRightRadius: 4 },
   bubbleTheirs: {
     background: 'var(--gd-surface)', color: 'var(--gd-text)', border: '1px solid var(--gd-line)', borderBottomLeftRadius: 4,
   },
+  forwardedTag: { fontSize: 11, opacity: 0.7, fontStyle: 'italic', marginBottom: 4 },
+  replyPreview: {
+    fontSize: 12, opacity: 0.8, borderLeft: '2px solid currentColor', paddingLeft: 8, marginBottom: 6,
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%',
+  },
+  deletedText: { fontStyle: 'italic', opacity: 0.7 },
+  meta: { display: 'flex', gap: 4, alignItems: 'center', fontSize: 11, opacity: 0.75, marginTop: 4 },
+  tick: { fontSize: 12 },
+  reactionRow: { display: 'flex', gap: 4, marginTop: 4 },
+  reactionPill: {
+    fontSize: 12, background: 'var(--gd-surface)', border: '1px solid var(--gd-line)', borderRadius: 12,
+    padding: '2px 8px', cursor: 'pointer',
+  },
+  menu: {
+    position: 'absolute', top: '100%', marginTop: 4, background: 'var(--gd-surface)', border: '1px solid var(--gd-line)',
+    borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', zIndex: 10, minWidth: 180, overflow: 'hidden',
+  },
+  emojiRow: { display: 'flex', gap: 4, padding: 8, borderBottom: '1px solid var(--gd-line)' },
+  emojiButton: { fontSize: 18, background: 'transparent', border: 'none', cursor: 'pointer' },
+  menuItem: {
+    display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'transparent',
+    border: 'none', borderBottom: '1px solid var(--gd-line)', cursor: 'pointer', fontSize: 13, color: 'var(--gd-text)',
+  },
+  composerReply: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--gd-surface)',
+    border: '1px solid var(--gd-line)', borderRadius: 10, padding: '8px 12px', marginTop: 12, fontSize: 12,
+  },
+  composerReplyText: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   form: {
-    display: 'flex', gap: 8, marginTop: 20, position: 'sticky', bottom: 16,
+    display: 'flex', gap: 8, marginTop: 12, position: 'sticky', bottom: 16,
     background: 'var(--gd-void)', paddingTop: 8, alignItems: 'center',
   },
   attachButton: {
@@ -172,4 +563,21 @@ const styles = {
   clearFile: { background: 'transparent', border: 'none', color: 'var(--gd-error)', cursor: 'pointer', marginLeft: 6 },
   dim: { color: 'var(--gd-text-dim)', fontSize: 14 },
   errorText: { color: 'var(--gd-error)', fontSize: 14, marginBottom: 12 },
+  modalOverlay: {
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', zIndex: 100,
+  },
+  modal: {
+    background: 'var(--gd-surface)', borderRadius: 14, padding: 20, width: '85%', maxWidth: 360, maxHeight: '70vh', overflowY: 'auto',
+  },
+  modalTitle: { margin: '0 0 12px', fontSize: 16 },
+  modalList: { display: 'flex', flexDirection: 'column', gap: 4 },
+  modalListItem: {
+    textAlign: 'left', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--gd-line)',
+    background: 'transparent', color: 'var(--gd-text)', cursor: 'pointer', fontSize: 14,
+  },
+  modalClose: {
+    marginTop: 16, width: '100%', padding: '10px 0', borderRadius: 8, border: '1px solid var(--gd-line)',
+    background: 'transparent', color: 'var(--gd-text)', cursor: 'pointer', fontSize: 14,
+  },
 };

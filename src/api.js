@@ -107,12 +107,16 @@ export async function apiDownloadFile(path, filename) {
 
 // Multipart upload to the Guardian backend (files can't go through
 // JSON, so this skips the Content-Type header and sends FormData).
-export async function apiUpload(path, file) {
+// `opts.filename` names a Blob that has no name of its own (e.g. a
+// recorded voice note); `opts.extraFields` adds extra form fields
+// alongside the file, such as kind/duration/waveform for voice notes.
+export async function apiUpload(path, file, opts = {}) {
   const { data } = await supabase.auth.getSession();
   const token = data?.session?.access_token;
 
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('file', file, opts.filename);
+  Object.entries(opts.extraFields || {}).forEach(([key, value]) => formData.append(key, value));
 
   const response = await fetch(`${API_BASE}${path}`, {
     method: 'POST',

@@ -12,7 +12,7 @@ import MiniMusicPlayer from './components/MiniMusicPlayer.jsx';
 import Login from './pages/Login.jsx';
 import GuestJournal from './pages/GuestJournal.jsx';
 import GuestGate from './pages/GuestGate.jsx';
-import { isGuest, enterGuest, exitGuest, listGuestEntries, clearGuestEntries } from './lib/guestStore';
+import { enterGuest, exitGuest, listGuestEntries, clearGuestEntries } from './lib/guestStore';
 import Onboarding from './pages/Onboarding.jsx';
 import Journal from './pages/Journal.jsx';
 import Settings from './pages/Settings.jsx';
@@ -30,6 +30,7 @@ import FAQ from './pages/FAQ.jsx';
 import Profile from './pages/Profile.jsx';
 import Messages from './pages/Messages.jsx';
 import MessageThread from './pages/MessageThread.jsx';
+import StarredMessages from './pages/StarredMessages.jsx';
 import SharedWithYou from './pages/SharedWithYou.jsx';
 import PdfViewer from './pages/PdfViewer.jsx';
 import PrivacyPolicy from './pages/legal/PrivacyPolicy.jsx';
@@ -88,6 +89,7 @@ function AppRoutes({ session, profile, setProfile, guest, onStartGuest, onLeaveG
         <Route path="/profile/:id" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><Profile profile={profile} /></Protected>} />
         <Route path="/messages" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><Messages profile={profile} /></Protected>} />
         <Route path="/messages/:userId" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><MessageThread profile={profile} /></Protected>} />
+        <Route path="/messages-starred" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><StarredMessages profile={profile} /></Protected>} />
         <Route path="/shared-with-you" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><SharedWithYou profile={profile} /></Protected>} />
         <Route path="/materials/pdf/:id" element={<Protected session={session} profile={profile} guest={guest} onLeaveGuest={onLeaveGuest}><PdfViewer profile={profile} /></Protected>} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -107,7 +109,13 @@ export default function App() {
   const [session, setSession] = useState(undefined);
   const [profile, setProfile] = useState(undefined);
   const [welcomeMessage, setWelcomeMessage] = useState(null);
-  const [guest, setGuest] = useState(isGuest());
+  // Guest mode always starts OFF on launch — Login is the front door
+  // every time the app opens. Tapping "Continue without an account"
+  // enters guest mode for that session only. Any journal entries a
+  // guest already saved are untouched (they live under a separate
+  // localStorage key and are read directly by GuestJournal/Bible), so
+  // nothing is lost — this only affects which screen shows first.
+  const [guest, setGuest] = useState(false);
   const justSignedIn = useRef(false);
 
   function startGuest() {
