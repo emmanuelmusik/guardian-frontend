@@ -10,7 +10,7 @@ export default function GuestGate({ onSignIn }) {
       <p style={styles.glyph}>✦</p>
       <h2 style={styles.title}>This part of Guardian needs an account</h2>
       <p style={styles.text}>
-        Your journal and the Bible are open to everyone. Connecting with mentors,
+        Personal Journal and the Bible are open to everyone. Connecting with mentors,
         joining communities, messaging, and sharing entries are between real
         people — so they need an account to work.
       </p>

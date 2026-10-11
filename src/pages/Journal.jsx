@@ -116,7 +116,7 @@ export default function Journal({ session, profile }) {
 
   return (
     <div style={styles.page}>
-      <PageHeader title="Your journal" profile={profile} />
+      <PageHeader title="Personal Journal 📓" profile={profile} />
 
       <p style={styles.scripture}>
         "Write the vision down, make it plane, though it might tarry but it must surely come to pass."
