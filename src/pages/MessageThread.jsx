@@ -60,6 +60,7 @@ export default function MessageThread({ profile }) {
   const [highlightId, setHighlightId] = useState(null);
 
   const bottomRef = useRef(null);
+  const bodyInputRef = useRef(null);
   const channelRef = useRef(null);
   const messageRefs = useRef({});
   const typingTimeoutRef = useRef(null);
@@ -362,6 +363,16 @@ export default function MessageThread({ profile }) {
     setMenuFor(null);
   }
 
+  // Replying to a message further up the thread (via swipe or the
+  // long-press menu) is pointless if the composer, down at the bottom,
+  // is off-screen — so bring it into view and put the cursor in it as
+  // soon as a reply target is set.
+  useEffect(() => {
+    if (!replyTo) return;
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    bodyInputRef.current?.focus();
+  }, [replyTo]);
+
   function startEdit(message) {
     setEditingId(message.id);
     setBody(message.body || '');
@@ -599,6 +610,7 @@ export default function MessageThread({ profile }) {
           />
         </label>
         <input
+          ref={bodyInputRef}
           placeholder={editingId ? 'Edit your message…' : 'Write a message… (*bold* _italic_ ~strike~)'}
           value={body}
           onChange={handleBodyChange}
