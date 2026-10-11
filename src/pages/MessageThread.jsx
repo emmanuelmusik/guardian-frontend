@@ -57,9 +57,11 @@ export default function MessageThread({ profile }) {
 
   const [drag, setDrag] = useState({ id: null, dx: 0 });
   const [burstId, setBurstId] = useState(null);
+  const [highlightId, setHighlightId] = useState(null);
 
   const bottomRef = useRef(null);
   const channelRef = useRef(null);
+  const messageRefs = useRef({});
   const typingTimeoutRef = useRef(null);
   const theirTypingTimeoutRef = useRef(null);
   const longPressRef = useRef(null);
@@ -314,6 +316,17 @@ export default function MessageThread({ profile }) {
     }
   }
 
+  // WhatsApp lets you tap a quoted reply to jump straight to the
+  // original message — scroll it into view and flash it briefly so
+  // it's obvious which bubble it is.
+  function jumpToMessage(messageId) {
+    const el = messageRefs.current[messageId];
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlightId(messageId);
+    setTimeout(() => setHighlightId((cur) => (cur === messageId ? null : cur)), 1200);
+  }
+
   async function react(messageId, emoji) {
     const msg = messages.find((m) => m.id === messageId);
     const already = (msg?.reactions || []).find((r) => r.user_id === profile.id && r.emoji === emoji);
@@ -451,11 +464,13 @@ export default function MessageThread({ profile }) {
                   </span>
                 )}
                 <div
+                  ref={(el) => { messageRefs.current[m.id] = el; }}
                   style={{
                     ...styles.bubble,
                     ...(mine ? styles.bubbleMine : styles.bubbleTheirs),
+                    ...(highlightId === m.id ? styles.bubbleHighlight : null),
                     transform: `translateX(${dragDx}px)`,
-                    transition: dragDx ? 'none' : 'transform 150ms ease-out',
+                    transition: dragDx ? 'none' : 'transform 150ms ease-out, background-color 200ms ease-out',
                     touchAction: 'pan-y',
                   }}
                   onContextMenu={(e) => { e.preventDefault(); setMenuFor(m.id); }}
@@ -467,8 +482,16 @@ export default function MessageThread({ profile }) {
                   {burstId === m.id && <span style={styles.heartBurst}>❤️</span>}
                   {m.forwarded_from_message_id && <div style={styles.forwardedTag}>↪ Forwarded</div>}
                   {m.reply_to && (
-                    <div style={styles.replyPreview}>
-                      {m.reply_to.deleted ? 'This message was deleted' : (m.reply_to.body || 'Media message')}
+                    <div
+                      style={styles.replyPreview}
+                      onClick={(e) => { e.stopPropagation(); jumpToMessage(m.reply_to.id); }}
+                    >
+                      <div style={{ ...styles.replyPreviewSender, color: mine ? 'var(--gd-on-accent)' : 'var(--gd-gold)' }}>
+                        {m.reply_to.sender_id === profile.id ? 'You' : (person?.display_name || 'Them')}
+                      </div>
+                      <div style={styles.replyPreviewText}>
+                        {m.reply_to.deleted ? 'This message was deleted' : (m.reply_to.body || 'Media message')}
+                      </div>
                     </div>
                   )}
 
@@ -527,16 +550,23 @@ export default function MessageThread({ profile }) {
 
       {replyTo && (
         <div style={styles.composerReply}>
-          <div style={styles.composerReplyText}>
-            Replying to: {replyTo.deleted_for_everyone ? 'This message was deleted' : (replyTo.body || 'Media message')}
+          <div style={styles.composerReplyBody}>
+            <div style={styles.composerReplySender}>
+              {replyTo.sender_id === profile.id ? 'You' : (person?.display_name || 'Them')}
+            </div>
+            <div style={styles.composerReplyText}>
+              {replyTo.deleted_for_everyone ? 'This message was deleted' : (replyTo.body || 'Media message')}
+            </div>
           </div>
-          <button type="button" onClick={() => setReplyTo(null)} style={styles.clearFile}>✕</button>
+          <button type="button" onClick={() => setReplyTo(null)} style={styles.composerReplyClose}>✕</button>
         </div>
       )}
       {editingId && (
         <div style={styles.composerReply}>
-          <div style={styles.composerReplyText}>Editing message</div>
-          <button type="button" onClick={() => { setEditingId(null); setBody(''); }} style={styles.clearFile}>✕</button>
+          <div style={styles.composerReplyBody}>
+            <div style={styles.composerReplySender}>Editing message</div>
+          </div>
+          <button type="button" onClick={() => { setEditingId(null); setBody(''); }} style={styles.composerReplyClose}>✕</button>
         </div>
       )}
 
@@ -604,17 +634,27 @@ const styles = {
   thread: { display: 'flex', flexDirection: 'column', gap: 3, minHeight: 200 },
   bubbleRow: { display: 'flex' },
   bubble: {
-    maxWidth: '78%', padding: '7px 9px 6px', borderRadius: 10, fontSize: 14.5, lineHeight: 1.35, cursor: 'pointer',
+    maxWidth: '78%', padding: '6px 7px 6px 8px', borderRadius: 10, fontSize: 14.5, lineHeight: 1.35, cursor: 'pointer',
     boxShadow: '0 1px 1px rgba(0,0,0,0.06)', position: 'relative',
   },
   bubbleMine: { background: 'var(--gd-gold)', color: 'var(--gd-on-accent)', borderBottomRightRadius: 2 },
   bubbleTheirs: {
     background: 'var(--gd-surface)', color: 'var(--gd-text)', borderBottomLeftRadius: 2,
   },
+  // Brief flash applied when jumping to a message via its quoted reply.
+  bubbleHighlight: { boxShadow: '0 0 0 2px var(--gd-gold)' },
   forwardedTag: { fontSize: 11, opacity: 0.7, fontStyle: 'italic', marginBottom: 2 },
+  // WhatsApp-style quoted reply card: a colored left bar, the original
+  // sender's name on top, the quoted text dimmed below — sitting inside
+  // a slightly tinted rounded panel at the top of the bubble.
   replyPreview: {
-    fontSize: 12, opacity: 0.8, borderLeft: '2px solid currentColor', paddingLeft: 6, marginBottom: 3,
-    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%',
+    background: 'rgba(0,0,0,0.08)', borderLeft: '3px solid currentColor', borderRadius: 6,
+    padding: '4px 8px', marginBottom: 4, overflow: 'hidden', maxWidth: '100%', cursor: 'pointer',
+  },
+  replyPreviewSender: { fontSize: 12.5, fontWeight: 700, marginBottom: 1 },
+  replyPreviewText: {
+    fontSize: 12.5, opacity: 0.8, overflow: 'hidden', textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap', display: 'block',
   },
   deletedText: { fontStyle: 'italic', opacity: 0.7 },
   meta: {
@@ -645,11 +685,20 @@ const styles = {
     display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'transparent',
     border: 'none', borderBottom: '1px solid var(--gd-line)', cursor: 'pointer', fontSize: 13, color: 'var(--gd-text)',
   },
+  // The bar that sits above the input while composing a reply or edit —
+  // same quote-card language as the in-bubble preview, so it reads as
+  // one continuous interaction.
   composerReply: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--gd-surface)',
-    border: '1px solid var(--gd-line)', borderRadius: 10, padding: '8px 12px', marginTop: 12, fontSize: 12,
+    display: 'flex', alignItems: 'center', gap: 8, background: 'var(--gd-surface)',
+    borderLeft: '4px solid var(--gd-gold)', borderRadius: 8, padding: '6px 10px 6px 12px', marginTop: 12,
   },
-  composerReplyText: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  composerReplyBody: { flex: 1, minWidth: 0 },
+  composerReplySender: { fontSize: 12.5, fontWeight: 700, color: 'var(--gd-gold)', marginBottom: 1 },
+  composerReplyText: { fontSize: 12.5, opacity: 0.75, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  composerReplyClose: {
+    background: 'transparent', border: 'none', color: 'var(--gd-text-dim)', cursor: 'pointer',
+    fontSize: 14, flexShrink: 0, padding: 4,
+  },
   form: {
     display: 'flex', gap: 8, marginTop: 12, position: 'sticky', bottom: 16,
     background: 'var(--gd-void)', paddingTop: 8, alignItems: 'center',
