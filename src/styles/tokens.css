@@ -95,3 +95,8 @@ a {
   50% { transform: scale(1.4); opacity: 0.5; }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* iOS zooms the page in when a field under 16px is focused, and often stays zoomed.
+   Keep every field at 16px (!important beats the inline sizes set in components) and never scroll sideways. */
+input, textarea, select { font-size: 16px !important; }
+html, body { overflow-x: hidden; max-width: 100%; }
