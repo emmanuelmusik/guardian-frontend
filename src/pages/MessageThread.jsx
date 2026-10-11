@@ -255,26 +255,31 @@ export default function MessageThread({ profile }) {
     clearTimeout(longPressRef.current);
   }
 
-  const SWIPE_REPLY_THRESHOLD = 56;
-  const SWIPE_MAX = 72;
+  const SWIPE_REPLY_THRESHOLD = 44;
+  const SWIPE_MAX = 60;
 
+  // A message pinned to the right edge (yours) only has open space to
+  // its LEFT; one pinned to the left edge (theirs) only has open space
+  // to its RIGHT. So "swipe to reply" has to swipe toward whichever
+  // side is actually open, or your own messages would just push off
+  // the edge of the screen instead of revealing anything. `drag.dx`
+  // below is always a non-negative "how far swiped" progress value in
+  // that message's own natural direction — sign is resolved at render.
   function handleDragStart(e, messageId) {
     startLongPress(messageId);
     dragStartRef.current = { x: e.clientX, y: e.clientY, id: messageId };
     e.currentTarget.setPointerCapture?.(e.pointerId);
   }
 
-  function handleDragMove(e, messageId) {
+  function handleDragMove(e, messageId, mine) {
     const start = dragStartRef.current;
     if (!start || start.id !== messageId) return;
-    const dx = e.clientX - start.x;
+    const rawDx = e.clientX - start.x;
     const dy = e.clientY - start.y;
-    // Only swipe-right counts as a reply gesture; anything that isn't a
-    // clearly horizontal rightward drag is left alone (vertical scroll,
-    // left swipe, a tap that barely moved).
-    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) cancelLongPress();
-    if (dx > 8 && Math.abs(dx) > Math.abs(dy)) {
-      setDrag({ id: messageId, dx: Math.min(dx - 8, SWIPE_MAX) });
+    const directional = mine ? -rawDx : rawDx; // leftward counts as progress for mine, rightward for theirs
+    if (Math.abs(rawDx) > 8 || Math.abs(dy) > 8) cancelLongPress();
+    if (directional > 8 && Math.abs(rawDx) > Math.abs(dy)) {
+      setDrag({ id: messageId, dx: Math.min(directional - 8, SWIPE_MAX) });
     }
   }
 
@@ -447,17 +452,19 @@ export default function MessageThread({ profile }) {
           const reactionCounts = {};
           (m.reactions || []).forEach((r) => { reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1; });
 
-          const dragDx = drag.id === m.id ? drag.dx : 0;
+          const dragProgress = drag.id === m.id ? drag.dx : 0; // 0..SWIPE_MAX, direction resolved below
+          const dragTranslate = mine ? -dragProgress : dragProgress;
 
           return (
             <div key={m.id} style={{ ...styles.bubbleRow, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
               <div style={{ position: 'relative' }}>
-                {dragDx > 0 && (
+                {dragProgress > 0 && (
                   <span
                     style={{
                       ...styles.swipeReplyIcon,
-                      opacity: Math.min(1, dragDx / SWIPE_REPLY_THRESHOLD),
-                      transform: `scale(${0.6 + 0.4 * Math.min(1, dragDx / SWIPE_REPLY_THRESHOLD)})`,
+                      ...(mine ? { left: 'auto', right: -24 } : { left: -24, right: 'auto' }),
+                      opacity: Math.min(1, dragProgress / SWIPE_REPLY_THRESHOLD),
+                      transform: `translateY(-50%) scale(${0.6 + 0.4 * Math.min(1, dragProgress / SWIPE_REPLY_THRESHOLD)})`,
                     }}
                   >
                     ↩
@@ -469,13 +476,13 @@ export default function MessageThread({ profile }) {
                     ...styles.bubble,
                     ...(mine ? styles.bubbleMine : styles.bubbleTheirs),
                     ...(highlightId === m.id ? styles.bubbleHighlight : null),
-                    transform: `translateX(${dragDx}px)`,
-                    transition: dragDx ? 'none' : 'transform 150ms ease-out, background-color 200ms ease-out',
+                    transform: `translateX(${dragTranslate}px)`,
+                    transition: dragProgress ? 'none' : 'transform 150ms ease-out, background-color 200ms ease-out',
                     touchAction: 'pan-y',
                   }}
                   onContextMenu={(e) => { e.preventDefault(); setMenuFor(m.id); }}
                   onPointerDown={(e) => handleDragStart(e, m.id)}
-                  onPointerMove={(e) => handleDragMove(e, m.id)}
+                  onPointerMove={(e) => handleDragMove(e, m.id, mine)}
                   onPointerUp={(e) => handleDragEnd(e, m)}
                   onPointerLeave={(e) => handleDragEnd(e, m)}
                 >
