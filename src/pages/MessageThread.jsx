@@ -629,7 +629,7 @@ export default function MessageThread({ profile }) {
 }
 
 const styles = {
-  page: { maxWidth: 640, margin: '0 auto', padding: '48px 24px 100px' },
+  page: { maxWidth: 640, margin: '0 auto', padding: '48px 12px 100px' },
   nameLink: { color: 'inherit', textDecoration: 'none' },
   back: { display: 'inline-block', color: 'var(--gd-text-dim)', fontSize: 13, textDecoration: 'none', marginBottom: 4 },
   presenceLine: { fontSize: 12, color: 'var(--gd-text-dim)', minHeight: 16, margin: '0 0 8px' },
